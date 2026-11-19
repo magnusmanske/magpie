@@ -13,7 +13,7 @@ axum = "0.8"
 axum-extra = { version = "0.12", features = ["cookie-private"] }
 clap = { version = "4", features = ["derive", "env"] }
 include_dir = "0.7"
-mediawiki_upload = "0.1"
+mediawiki_upload = { version = "0.1", features = ["wikimedia"] }
 mime_guess = "2"
 percent-encoding = "2"
 regex = "1"
