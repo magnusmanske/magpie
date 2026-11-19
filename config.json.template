@@ -1,0 +1,9 @@
+{
+  "public_url": "https://magpie.toolforge.org",
+  "cookie_key": "<128 hex digits: openssl rand -hex 64>",
+  "oauth": "oauth.ini",
+  "replica_credentials": "replica.my.cnf",
+  "flickr_key_file": "flickr_key.txt",
+  "max_upload_bytes": 5368709120,
+  "chunk_size": 5242880
+}

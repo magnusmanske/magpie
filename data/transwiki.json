@@ -1,0 +1,217 @@
+{
+    "ar": {
+        "رخصة جنو للوثائق الحرة 1.2": "GFDL-1.2"
+    },
+    "bn": {
+        "pd Art": "PD-Art",
+        "pd art": "PD-Art",
+        "pd self": "PD-self",
+        "pd Self": "PD-self",
+        "PD-user": "PD-user-w|bn|wikipedia",
+        "GFDL-user": "GFDL-user-w|bn|wikipedia",
+        "GFDL-self-with-disclaimers": "GFDL-user-bn-with-disclaimers",
+        "GFDL-1.2": "GFDL-1.2",
+        "cc-by-4.0": "cc-by-4.0",
+        "cc-by-sa-4.0": "cc-by-sa-4.0"
+    },
+    "ca": {
+        "DP-usuari": "PD-user-w|ca|wikipedia",
+        "DP-Propi": "PD-self"
+    },
+    "de": {
+        "bild-GFDL": "GFDL",
+        "bild-GPL": "GPL",
+        "bild-CC-by-sa\/2.0\/de": "Cc-by-sa-2.0-de",
+        "bild-CC-by\/2.0\/de": "Cc-by-2.0-de",
+        "bild-PD": "PD",
+        "bild-GFDL-OpenGeoDB": "GFDL-OpenGeoDB",
+        "bild-GFDL-GMT": "GFDL",
+        "bild-CC-by-sa\/2.0": "Cc-by-sa-2.0",
+        "bild-CC-by-sa\/2.5": "Cc-by-sa-2.5",
+        "bild-CC-by\/2.0": "Cc-by-2.0",
+        "bild-CC-by\/2.5": "Cc-by-2.5",
+        "bild-CC-by-sa\/3.0": "cc-by-sa-3.0",
+        "bild-CC-by-sa\/3.0\/de": "cc-by-sa-3.0-de",
+        "bild-CC-sa\/1.0": "Cc-by-sa",
+        "bild-PD-alt": "PD-old",
+        "bild-PD-Kunst": "PD-Art",
+        "bild-PD-US": "PD-USGov",
+        "bild-UN": "PD-UN",
+        "bild-frei": "PD-release",
+        "bild-PD-alt-100": "PD-old",
+        "bild-PD-Schöpfungshöhe": "PD-ineligible",
+        "bild-PD-frei": "PD-self",
+        "bild-PD-nur PD": "PD-release",
+        "bild-PD-alt-Vervielfältigung": "PD-old",
+        "bild-GFDL\/1.2": "GFDL-1.2",
+        "bild-PD-Amtliches Werk": "PD-GermanGov",
+        "bild-PD-Amtliches Werk (Deutsche Briefmarke)": "PD-GermanGov",
+        "bild-by": "Attribution",
+        "bild-CC-by\/3.0": "cc-by-3.0",
+        "bild-CC-by\/3.0\/de": "cc-by-3.0-de",
+        "bild-CC-by-sa\/1.0": "cc-by-sa-1.0",
+        "bild-CC-by-sa\/3.0\/at": "cc-by-sa-3.0-at",
+        "bild-CC-by-sa\/3.0\/ch": "cc-by-sa-3.0-ch",
+        "bild-CC-by\/4.0": "cc-by-4.0",
+        "bild-CC-by-sa\/4.0": "cc-by-sa-4.0",
+        "bild-CC-0": "cc-zero",
+        "bild-GFDL\/1.3": "GFDL-1.3"
+    },
+    "el": {
+        "ΚΚ-70": "PD-Art",
+        "ΚΚ-ΗΠΑ": "PD-USGov",
+        "ΚΚ-ΗΠΑ-NASA": "PD-USGov-NASA",
+        "ΚΚ": "PD",
+        "ΚΚ-χρήστη": "PD-user-w|el|wikipedia",
+        "GFDL-self": "GFDL-user-w|el|wikipedia",
+        "ΠΔΕΧ-2": "attribution",
+        "ΠΔΕΧ": "PD-author"
+    },
+    "en": {
+        "pd Art": "PD-Art",
+        "pd art": "PD-Art",
+        "pd self": "PD-self",
+        "pd Self": "PD-self",
+        "PD-user": "PD-user-w|en|wikipedia",
+        "GFDL-user": "GFDL-user-w|en|wikipedia",
+        "GFDL-self-with-disclaimers": "GFDL-user-en-with-disclaimers",
+        "GFDL-1.2": "GFDL-1.2",
+        "cc-by-4.0": "cc-by-4.0",
+        "cc-by-sa-4.0": "cc-by-sa-4.0"
+    },
+    "eo": {
+        "Atribuo": "Attribution"
+    },
+    "es": {
+        "propio|GFDL": "GFDL-self",
+        "propio|CC-by-sa-2.5": "CC-by-sa",
+        "propio|CC-by-sa": "CC-by-sa",
+        "propio|CC-by": "CC-by",
+        "propio|PD": "PD",
+        "propio|DP": "PD",
+        "DP": "PD"
+    },
+    "fa": {
+        "مالکیت عمومی-خود": "PD-self",
+        "نگاره قدیمی": "PD-old",
+        "مجوز گنو": "GFDL",
+        "مالکیت عمومی": "PD"
+    },
+    "fi": {
+        "Vapaa": "Copyrighted free use",
+        "Vapaa\/NimiMainittava": "Attribution"
+    },
+    "fr": {
+        "Domaine public": "PD",
+        "Domaine public Iran": "PD",
+        "Domaine public NARA": "PD-USGov-NARA",
+        "Domaine public NASA": "PD-USGov-NASA",
+        "Domaine public NSA": "PD-USGov-NSA",
+        "Domaine public UK": "PD-BritishGov",
+        "Domaine public USA": "PD-US",
+        "Domaine public Ukraine": "PD",
+        "Domaine public drapeau": "PD-Flag",
+        "Domaine public expiré": "PD-old",
+        "Domaine public expiré 50": "PD",
+        "Domaine public expiré 70": "PD",
+        "Domaine public gouvernement USA": "PD-USGov",
+        "Domaine public par auteur": "PD-author",
+        "Domaine public par utilisateur": "PD-user",
+        "Domaine public perso": "PD-self",
+        "Domaine public symbole Pologne": "PD-Polishsymbol",
+        "Art Libre": "FAL",
+        "ArtLibre": "FAL",
+        "Image signée": "Watermark"
+    },
+    "he": {
+        "שימוש חופשי מוגן": "Copyrighted free use",
+        "ייחוס": "Attribution",
+        "צילום משתמש": "Attribution",
+        "שימוש חופשי": "PD-self",
+        "שימוש חופשי מוגן בתנאי": "Copyrighted free use provided that",
+        "דו-רישיוני": "Self",
+        "דו-רשיוני": "Self"
+    },
+    "hu": {
+        "közkincs|user=": "PD-user|1=",
+        "közkincs-saját": "PD-self",
+        "közkincs-ismeretlen": "PD-HU-unkown",
+        "közkincs-régi": "PD-old",
+        "közkincs-usa": "PD-USGov",
+        "közkincs-usa-NASA": "PD-USGov-NASA",
+        "közkincs-brit": "PD-UKGov",
+        "kettős-GFDL-cc-by-sa-3.0": "self|GFDL|cc-by-sa-3.0",
+        "GFDL-saját": "GFDL-self",
+        "GPL": "GPLv3",
+        "szabad képernyőkép": "Free screenshot",
+        "wikipédia-képernyőkép": "Wikipedia-screenshot"
+    },
+    "is": {
+        "CC-by-2.5": "CC-by-2.5",
+        "GFDL": "GFDL",
+        "PD-Eigin": "PD-self",
+        "PD-ineligible": "PD-ineligible"
+    },
+    "it": {
+        "GFDL-con-disclaimer": "GFDL-it",
+        "GFDL-Utente-con-disclaimer": "self|author=$$UPLOADER$$|GFDL-it",
+        "PD-Utente": "PD-self",
+        "PD-utente": "PD-self",
+        "PD-Autore": "PD-author",
+        "PD-autore": "PD-author"
+    },
+    "ko": {
+        "GFDL|갱신=갱신": "GFDL|migration=relicense",
+        "GFDL|갱신=부적합": "GFDL|migration=not-eligible",
+        "GFDL|갱신=불필요": "GFDL|migration=redundant",
+        "Cc-0": "Cc-zero",
+        "MIT 허가서": "MIT",
+        "PD-서울시공개자료": "PD-author |1=[[:ko:위키백과:서울시 지식공유 프로젝트|Seoul Special City]]",
+        "공공누리 제1유형": "KOGL",
+        "위키미디어 재단 저작권": "Copyright by Wikimedia",
+        "Self|GFDL|cc-by-sa-3.0": "Self|author=$$UPLOADER$$|GFDL|cc-by-sa-3.0"
+    },
+    "lb": {
+        "bild-GFDL": "GFDL",
+        "bild-CC-by-sa": "Cc-by-sa"
+    },
+    "lv": {
+        "sedols": "self|author=Jānis Sedols|Cc-by-sa-3.0"
+    },
+    "nl": {
+        "PD-eigen": "PD-self",
+        "CBS-wijkkaart": "Statistics Netherlands map"
+    },
+    "mk": {
+        "ЈД-предадено": "PD-self"
+    },
+    "ro": {
+        "DP-personal": "PD-self"
+    },
+    "sr": {
+        "ГЛСД-ја": "GFDL-self",
+        "ГЛСД-са-одрицањем": "GFDL-with-disclaimers",
+        "Cc-by-3.0-rs": "Cc-by-3.0-rs",
+        "Cc-by": "Cc-by",
+        "Cc-by-2.5": "Cc-by-2.5",
+        "Cc-by-2.0": "Cc-by-2.0",
+        "Cc-by-3.0": "Cc-by-3.0",
+        "Cc-by-sa-2.5": "Cc-by-sa-2.5",
+        "Cc-by-sa-2.0": "Cc-by-sa-2.0",
+        "Приписивање": "Attribution",
+        "Јв-ја": "PD-self",
+        "ЈВ-ја": "PD-self",
+        "јв-ја": "PD-self",
+        "ГЛСД-претпоставља се": "GFDL-self",
+        "ГЛСД-без-одрицања": "GFDL-no-disclaimers",
+        "GLSD-ja": "GFDL-self",
+        "DP-usuari": "PD-user",
+        "DP-Propi": "PD-self"
+    },
+    "tr": {
+        "KM-Kişisel": "PD-self"
+    },
+    "vi": {
+        "GFDL-1.2": "GFDL-1.2"
+    }
+}

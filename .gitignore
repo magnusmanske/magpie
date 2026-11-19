@@ -1,0 +1,7 @@
+/target
+/config.json
+/flickr_key.txt
+
+# Credentials: never commit
+*.ini
+*.cnf
