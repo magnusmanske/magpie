@@ -2,7 +2,9 @@
 
 One Toolforge service that moves files from somewhere else to Wikimedia
 Commons. It replaces four PHP tools with one Rust/axum backend and one Vue 2
-front-end:
+front-end.
+
+The ported tools and their dictionaries are GPL-3.0-or-later; see `COPYING`.
 
 | Old tool | Old source | New path |
 |---|---|---|
