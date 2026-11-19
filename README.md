@@ -181,6 +181,7 @@ used.
 |---|---|
 | `assets/index.html` | shell, CDN scripts |
 | `assets/app.js` | router, shell component, auth state |
+| `assets/img/magpie.jpg` | header icon and favicon |
 | `assets/js/api.js` | all backend calls |
 | `assets/js/upload.js` | sequential upload queue |
 | `assets/js/util.js` | file-name/description helpers |
@@ -189,6 +190,11 @@ used.
 
 The server serves `index.html` for `/` and every tool path. Old `.php` URLs
 redirect to the directory, so the SPA's relative assumptions hold.
+
+The header icon is a 330 px thumbnail of
+[File:Eurasian magpie iridescence.jpg](https://commons.wikimedia.org/wiki/File:Eurasian_magpie_iridescence.jpg)
+by Alexis Lours, licensed CC BY 4.0. It is cropped and desaturated with CSS;
+the binary embeds the thumbnail under `assets/img/`.
 
 ## Deployment
 

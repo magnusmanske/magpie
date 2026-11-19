@@ -156,6 +156,9 @@ mod tests {
                 .starts_with("text/css")
         );
         assert!(get("/assets/app.js").await.body.contains("Vue"));
+        let icon = get("/assets/img/magpie.jpg").await;
+        assert_eq!(icon.status.as_u16(), 200);
+        assert_eq!(icon.headers["content-type"], "image/jpeg");
     }
 
     #[tokio::test]

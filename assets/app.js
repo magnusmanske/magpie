@@ -21,7 +21,7 @@ Vue.component('magpie-shell', {
 	template: `
 	<div class="magpie-shell">
 		<header class="magpie-header">
-			<router-link to="/" class="magpie-brand">magpie</router-link>
+			<router-link to="/" class="magpie-brand"><img class="magpie-icon" src="/assets/img/magpie.jpg" width="128" height="128" alt="" title="Eurasian magpie by Alexis Lours, CC BY 4.0"> magpie</router-link>
 			<nav class="magpie-nav">
 				<router-link to="/flickr2commons/">Flickr2Commons</router-link>
 				<router-link to="/url2commons/">Url2Commons</router-link>
