@@ -46,7 +46,10 @@ A working Rust/axum service that replaces the four PHP transfer tools:
 - `src/download.rs` — SSRF guard + size limit + temporary file.
 - `assets/` — Vue 2.6 + Vue Router 3, no build step, plain ES6. Views:
   `home`, `flickr2commons`, `url2commons`, `geograph2commons`,
-  `commonshelper`.
+  `commonshelper`. Flickr support lives in `assets/js/flickr.js` (API and
+  flinfo), `assets/js/commons.js` (filename/TitleBlacklist checks),
+  `assets/js/flickr-file.js` (per-photo row) and
+  `assets/flickr2commons.css`.
 
 `mediawiki_upload` (the sibling crate) must be published or switched to a git
 dependency before a remote Toolforge build; it is a path dependency today.
@@ -118,12 +121,18 @@ file, so a broken dictionary cannot become a per-request error.
 * The Flickr "on Commons" check needs the replica; without one it reports the
   database as unavailable. Do not silently return "not on Commons" — that
   would encourage duplicate uploads.
-* The Flickr front-end license map is deliberately conservative (4/5 → the
-  2.0 Commons templates). Finish the port of the old mapping before treating
-  it as feature-complete.
-* The new Flickr view imports, checks, edits and uploads photos, but the old
-  batch helpers (bulk selection, per-photo template choices, and so on) are not
-  all ported. Do not describe it as full Flickr2Commons parity.
+* The Flickr batch view is a port of the old `main-page.js` / `flickr-file.js`:
+  listings, filename and TitleBlacklist warnings, bulk selection, prefix and
+  suffix, find/replace, category suggestions, PD rationale and the concurrent
+  transfer queue. Licence IDs 4–5 and 7–12 are accepted; names and templates
+  match the old `LICENSE_NAMES`/`LICENSE_TEMPLATES`.
+* Legacy Flickr deep links are query parameters (`photoid`, `userid`,
+  `photoset`, `group`, `tags`, `maxpics`) on `/flickr2commons/`. The old
+  history-mode routes (`/photo/…`, `/user/…`, …), tool translation and
+  `logger.php` pings are not ported.
+* Information templates and category suggestions come from FLinfo in the
+  browser, with a local Information-template fallback. The per-file name check
+  uses the Commons API directly; the bulk filename check uses `/api.php`.
 * The login cookie is `Secure` and built by `wikimisc::oauth1::Session`. Local
   login tests therefore need HTTPS (a tunnel is enough); plain HTTP will
   appear logged out no matter how successful the OAuth handshake was.
@@ -140,10 +149,10 @@ file, so a broken dictionary cannot become a per-request error.
 
 ## Likely next work
 
-1. Port the full Flickr license/description logic from
-   `flickr2commons/public_html/shared.js` and `flickr-file.js`, with the
-   existing Node tests as fixtures, and restore the old batch helpers in the
-   view.
+1. Add front-end tests for the ported Flickr helpers (`commons.js` filename
+   states, `flickr.js` listing/description) and capture a flinfo response as a
+   fixture. Port the old path-based routes and translation if they are still
+   used.
 2. Add `{{NowCommons}}` saving through `setpagetext` (and the matching
    permission check) if users want it back.
 3. Capture CommonsHelper PHP output for representative files and add golden

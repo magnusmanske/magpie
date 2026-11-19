@@ -185,7 +185,10 @@ used.
 | `assets/js/api.js` | all backend calls |
 | `assets/js/upload.js` | sequential upload queue |
 | `assets/js/util.js` | file-name/description helpers |
-| `assets/js/flickr.js` | Flickr API, license mapping, description |
+| `assets/js/commons.js` | Commons filename checks and TitleBlacklist mirror |
+| `assets/js/flickr.js` | Flickr API, listings, license mapping, flinfo templates |
+| `assets/js/flickr-file.js` | one editable Flickr photo row |
+| `assets/flickr2commons.css` | the Flickr batch layout |
 | `assets/views/*.js` | one view per tool |
 
 The server serves `index.html` for `/` and every tool path. Old `.php` URLs
@@ -247,17 +250,19 @@ aliases.
 
 **Not feature-complete yet:**
 
-* **Flickr license mapping** is intentionally conservative but coarse: Flickr
-  license IDs 4/5 map to the 2.0 Commons templates. The old tool's
-  `shared.js`/`flickr-file.js` has a much finer version/URL-based mapping and a
-  richer description builder; port that next, with the existing tests in
-  `flickr2commons/tests/`.
-* **Flickr front-end parity.** The new view imports, checks, edits and uploads
-  photos, but the old batch helpers (bulk selection, per-photo template
-  choices, and so on) are not all ported yet.
+* **Flickr batch interface.** The batch view, the per-photo rows, filename and
+  TitleBlacklist warnings, bulk selection, prefix/suffix, find/replace,
+  category suggestions and the concurrent transfer queue are ported from the
+  old Vue app. Legacy query parameters (`photoid`, `userid`, `photoset`,
+  `group`, `tags`, `maxpics`) are honoured. The old path-based routes
+  (`/photo/…`, `/user/…`, …), tool translation, and the `logger.php` pings are
+  not ported.
 * **Flickr API CORS** is assumed to work (the old tool called it from the
   browser). If it does not, proxy the few `flickr.photos.*` calls through
   `/api.php`.
+* **FLinfo** is called directly from the browser for Information templates and
+  category suggestions. If it is unreachable, a local template is built from
+  the Flickr data; category suggestions are simply unavailable.
 * **CommonsHelper interface localisation** is no longer fetched from
   `User:Magnus_Manske/Commonshelper_interface`; the UI is English. The
   description/license output is independent of this.

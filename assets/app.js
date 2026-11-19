@@ -31,7 +31,7 @@ Vue.component('magpie-shell', {
 			<div class="magpie-auth">
 				<span v-if="auth.checked && auth.ok" class="magpie-ok">Logged in</span>
 				<template v-else-if="auth.checked">
-					<a :href="loginUrl">Log in with OAuth</a>
+					<a :href="loginUrl" @click="rememberRouteForLogin">Log in with OAuth</a>
 					<span v-if="auth.error" class="magpie-hint"> ({{ auth.error }})</span>
 				</template>
 				<a v-if="auth.ok" :href="logoutUrl">Log out</a>
@@ -51,8 +51,31 @@ Vue.component('magpie-shell', {
 	},
 	mounted() {
 		Magpie.refreshAuth();
+	},
+	methods: {
+		/* OAuth returns to `/`; keep the tool page and its query for then. */
+		rememberRouteForLogin() {
+			try {
+				window.sessionStorage.setItem('magpie_return_to',
+					window.location.pathname + window.location.search);
+			} catch (error) {
+				/* storage unavailable */
+			}
+		}
 	}
 });
+
+/* Restore the page the login button remembered. */
+(function restoreRouteAfterLogin() {
+	try {
+		const pending = window.sessionStorage.getItem('magpie_return_to');
+		if (!pending || window.location.pathname !== '/') return;
+		window.sessionStorage.removeItem('magpie_return_to');
+		window.location.replace(pending);
+	} catch (error) {
+		/* storage unavailable */
+	}
+})();
 
 const routes = [
 	{ path: '/', component: Magpie.Views.home },
