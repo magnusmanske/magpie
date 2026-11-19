@@ -172,7 +172,7 @@ no longer fetched from a wiki page; the front-end is English for now.
 
 ## Front-end
 
-One Vue 2.5 application with Vue Router 3 in history mode, no build step.
+One Vue 2.6 application with Vue Router 3 in history mode, no build step.
 All code is plain ES6 loaded by `index.html`; nothing runs on the server beyond
 serving the files. Bootstrap 4 is loaded from the Toolforge CDN; jQuery is not
 used.

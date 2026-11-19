@@ -44,7 +44,7 @@ A working Rust/axum service that replaces the four PHP transfer tools:
 - `src/commonshelper/` — source page fetch, embedded data, and a close port of
   `get_upload_text()`.
 - `src/download.rs` — SSRF guard + size limit + temporary file.
-- `assets/` — Vue 2.5 + Vue Router 3, no build step, plain ES6. Views:
+- `assets/` — Vue 2.6 + Vue Router 3, no build step, plain ES6. Views:
   `home`, `flickr2commons`, `url2commons`, `geograph2commons`,
   `commonshelper`.
 
