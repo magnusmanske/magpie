@@ -121,12 +121,29 @@ file, so a broken dictionary cannot become a per-request error.
 * The Flickr front-end license map is deliberately conservative (4/5 → the
   2.0 Commons templates). Finish the port of the old mapping before treating
   it as feature-complete.
+* The new Flickr view imports, checks, edits and uploads photos, but the old
+  batch helpers (bulk selection, per-photo template choices, and so on) are not
+  all ported. Do not describe it as full Flickr2Commons parity.
+* The login cookie is `Secure` and built by `wikimisc::oauth1::Session`. Local
+  login tests therefore need HTTPS (a tunnel is enough); plain HTTP will
+  appear logged out no matter how successful the OAuth handshake was.
+* Write actions use `is_same_origin`. Browser `fetch` is fine; a script or bot
+  calling `/api.php` directly must send `Sec-Fetch-Site`, `Origin`, or
+  `Referer`, as the old uploader also required.
+* CommonsHelper defaults an empty `language` to `en`, so the old
+  `language=`/`project=wikisource` case is not supported. Other wikis are
+  limited to what `wikimisc::Wiki` knows (Wikimedia projects and the special
+  wikis).
+* License: the four PHP tools are GPL-3.0, so the port and its extracted data
+  are GPL-3.0-or-later (`COPYING`). Do not relicense the extracted dictionaries
+  as MIT/Apache just because `mediawiki_upload` is permissively licensed.
 
 ## Likely next work
 
 1. Port the full Flickr license/description logic from
    `flickr2commons/public_html/shared.js` and `flickr-file.js`, with the
-   existing Node tests as fixtures.
+   existing Node tests as fixtures, and restore the old batch helpers in the
+   view.
 2. Add `{{NowCommons}}` saving through `setpagetext` (and the matching
    permission check) if users want it back.
 3. Capture CommonsHelper PHP output for representative files and add golden

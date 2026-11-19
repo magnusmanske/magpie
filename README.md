@@ -232,13 +232,23 @@ crates are developed together. A remote buildservice build cannot fetch it.
 Publish it (or switch `magpie` to a git dependency) before the first remote
 build.
 
-## Known gaps and sensible next steps
+## Status and limitations
+
+**Working today:** the shared upload API with one OAuth login; URL, Geograph
+and CommonsHelper transfers; Flickr photo import and the two Commons checks;
+chunked uploads; the embedded Vue front-end; the old `.php` addresses and API
+aliases.
+
+**Not feature-complete yet:**
 
 * **Flickr license mapping** is intentionally conservative but coarse: Flickr
   license IDs 4/5 map to the 2.0 Commons templates. The old tool's
   `shared.js`/`flickr-file.js` has a much finer version/URL-based mapping and a
   richer description builder; port that next, with the existing tests in
   `flickr2commons/tests/`.
+* **Flickr front-end parity.** The new view imports, checks, edits and uploads
+  photos, but the old batch helpers (bulk selection, per-photo template
+  choices, and so on) are not all ported yet.
 * **Flickr API CORS** is assumed to work (the old tool called it from the
   browser). If it does not, proxy the few `flickr.photos.*` calls through
   `/api.php`.
@@ -248,6 +258,10 @@ build.
 * **CommonsHelper fixtures** would make the port easier to trust: capture a set
   of PHP inputs/outputs and compare. Until then, the unit tests cover the
   building blocks, not whole pages.
+* **CommonsHelper's empty-language Wikisource case** (`language=` plus
+  `project=wikisource`) is not supported; the handler defaults an empty
+  language to `en`. Other projects use `Wiki::new`, so the supported set is
+  the same as `wikimisc::wiki`.
 * **`{{NowCommons}}` on the source wiki** is shown as text plus an edit link;
   the old tool could save it through the uploader's `setpagetext`. A small
   front-end addition can restore that.
@@ -257,6 +271,27 @@ build.
   `toolforge-replicas` feature but are not used here; the current checks are
   name/duplicate based. Enable them for a "check before upload" button if the
   extra round-trip is worth it.
+
+**Operational notes:**
+
+* The OAuth consumer's registered callback must be exactly `public_url` +
+  `/api.php` (`https://magpie.toolforge.org/api.php` for the default config).
+  Never derive it from `Host`/`X-Forwarded-*`.
+* The session cookie is `Secure`, so login does not work over plain HTTP. Use
+  a TLS-terminating proxy (Toolforge does this) or an HTTPS tunnel for local
+  login tests.
+* Write actions require a same-origin request. Browser clients send the usual
+  `Sec-Fetch-Site`/`Origin`/`Referer` headers; a non-browser client using the
+  upload API directly must supply one of them.
+* The old subdomains need Toolforge redirect containers; see
+  [Deployment](#deployment). A tool page redirects with 308 (method and query
+  preserved).
+* `mediawiki_upload` is a path dependency today. A remote buildservice build
+  cannot fetch it; publish it or use a git dependency before deploying.
+
+**License.** The four source tools are GPL-3.0, so this port and the extracted
+dictionaries are GPL-3.0-or-later (`COPYING`). `mediawiki_upload` remains
+MIT OR Apache-2.0; the combination follows GPL-3 compatibility.
 
 ## Testing
 
