@@ -48,6 +48,10 @@ pub struct Request {
     #[serde(default)]
     text: String,
     #[serde(default)]
+    summary: String,
+    #[serde(default)]
+    basetimestamp: String,
+    #[serde(default)]
     url: String,
     #[serde(default)]
     newfile: String,
@@ -164,7 +168,15 @@ pub async fn handler(
         a if writes.contains(&a) && !same_origin => {
             Err("Requests must come from this site".to_string())
         }
-        "setpagetext" => user.edit_page(&request.page, &request.text).await,
+        "setpagetext" => {
+            user.edit_page(
+                &request.page,
+                &request.text,
+                &request.summary,
+                &request.basetimestamp,
+            )
+            .await
+        }
         "upload" | "upload_from_url" => {
             let (result, response) = user.upload(&request).await;
             out.insert("res".to_string(), response.unwrap_or(Value::Null));

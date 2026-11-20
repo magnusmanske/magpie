@@ -50,8 +50,16 @@ Magpie.api = {
 		});
 	},
 
-	async setPageText(page, text) {
-		return Magpie.api.post({ action: 'setpagetext', botmode: '1', page: page, text: text });
+	async setPageText(page, text, site, summary, basetimestamp) {
+		return Magpie.api.post({
+			action: 'setpagetext',
+			botmode: '1',
+			site: site || '',
+			page: page,
+			text: text,
+			summary: summary || '',
+			basetimestamp: basetimestamp || ''
+		});
 	},
 
 	/* Flickr2Commons bookkeeping. */

@@ -472,29 +472,59 @@ Magpie.Views.flickr2commons = (function () {
 					this.keyStatus = String(error.message || error);
 				}
 			},
-			/* Legacy deep links: ?photoid=…, ?userid=…, ?photoset=…, ?tags=…, ?maxpics=… */
+			/* Legacy deep links: ?photoid=…, ?userid=…, ?photoset=…, ?tags=…, ?maxpics=…
+			   The newer interface uses hash routes: #/user/…, #/photo/… with
+			   ?tag=… and ?max_pictures=… . */
 			applyQuery() {
-				const query = new URLSearchParams(window.location.search);
-				if (query.has('maxpics')) this.max_pictures = query.get('maxpics');
+				const { query, route } = this.readRoute();
 				if (query.has('max_pictures')) this.max_pictures = query.get('max_pictures');
-				if (query.has('tags')) this.tag = query.get('tags');
-				const routes = [
-					['photoid', 'photo'],
-					['photoset', 'photoset'],
-					['group', 'group'],
-					['userid', 'user']
-				];
-				for (const [name, type] of routes) {
-					if (!query.has(name)) continue;
-					const value = (query.get(name) || '').trim();
-					if (!value) break;
-					this.combined_input = value;
-					this.pending_route = { type: type, value: value };
-					break;
+				if (query.has('maxpics')) this.max_pictures = query.get('maxpics');
+				if (query.has('tags')) this.tag = (query.get('tags') || '').replace(/_/g, ' ');
+				if (query.has('tag')) this.tag = query.get('tag');
+				if (route) {
+					this.combined_input = route.value;
+					this.pending_route = route;
+				} else {
+					const routes = [
+						['photoid', 'photo'],
+						['photoset', 'photoset'],
+						['group', 'group'],
+						['userid', 'user']
+					];
+					for (const [name, type] of routes) {
+						if (!query.has(name)) continue;
+						const value = (query.get(name) || '').replace(/_/g, ' ').trim();
+						if (!value) break;
+						this.combined_input = value;
+						this.pending_route = { type: type, value: value };
+						break;
+					}
 				}
 				if (!this.combined_input) return;
 				if (this.is_authorized) this.doRun();
 				else this.input_error = 'Log in to start this transfer.';
+			},
+			readRoute() {
+				const hash = window.location.hash || '';
+				if (hash.startsWith('#/')) {
+					const raw = hash.slice(2);
+					const split = raw.indexOf('?');
+					const path = split >= 0 ? raw.slice(0, split) : raw;
+					const query = new URLSearchParams(split >= 0 ? raw.slice(split + 1) : '');
+					const [type, ...rest] = path.split('/');
+					let value = rest.join('/');
+					try { value = decodeURIComponent(value); } catch (error) { /* keep the raw value */ }
+					const map = { user: 'user', photoset: 'photoset', group: 'group', photo: 'photo', url: 'user' };
+					if (map[type] && value) return { query: query, route: { type: map[type], value: value } };
+					return { query: query, route: null };
+				}
+				return { query: new URLSearchParams(window.location.search), route: null };
+			},
+			syncRoute(type, value) {
+				const route = '#/' + type + '/' + encodeURIComponent(value) + this.getRouteParams();
+				if (window.location.hash !== route) {
+					window.history.replaceState(null, '', window.location.pathname + window.location.search + route);
+				}
 			},
 			logError(text) {
 				this.running = false;
@@ -504,7 +534,7 @@ Magpie.Views.flickr2commons = (function () {
 			rememberRouteForLogin() {
 				try {
 					window.sessionStorage.setItem('magpie_return_to',
-						window.location.pathname + window.location.search);
+						window.location.pathname + window.location.search + window.location.hash);
 				} catch (error) {
 					/* storage unavailable */
 				}
@@ -528,6 +558,9 @@ Magpie.Views.flickr2commons = (function () {
 				this.pd_rationale = '';
 				this.populating_categories = false;
 				this.category_population_message = '';
+				if (window.location.hash) {
+					window.history.replaceState(null, '', window.location.pathname + window.location.search);
+				}
 			},
 			validateTag() {
 				this.tag_warning = '';
@@ -967,6 +1000,7 @@ Magpie.Views.flickr2commons = (function () {
 					href: ''
 				};
 				if (photoIds.length === 1) this.hydrateLoadedContext('photo', photoIds[0]);
+				this.syncRoute('photo', photoIds.join(','));
 				let failed = 0;
 				await Promise.all(photoIds.map(async (photoId) => {
 					try {
@@ -1020,6 +1054,7 @@ Magpie.Views.flickr2commons = (function () {
 					this.form_is_visible = true;
 					return;
 				}
+				this.syncRoute('user', userId);
 				this.getFlickrFiles({
 					method: 'flickr.photos.search',
 					result_key: 'photos',
@@ -1038,6 +1073,7 @@ Magpie.Views.flickr2commons = (function () {
 					this.form_is_visible = true;
 					return;
 				}
+				this.syncRoute('photoset', photosetId);
 				this.getFlickrFiles({
 					method: 'flickr.photosets.getPhotos',
 					result_key: 'photoset',
@@ -1066,6 +1102,7 @@ Magpie.Views.flickr2commons = (function () {
 					this.form_is_visible = true;
 					return;
 				}
+				this.syncRoute('group', realGroupId);
 				this.getFlickrFiles({
 					method: 'flickr.groups.pools.getPhotos',
 					result_key: 'photos',

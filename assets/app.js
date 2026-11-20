@@ -57,7 +57,7 @@ Vue.component('magpie-shell', {
 		rememberRouteForLogin() {
 			try {
 				window.sessionStorage.setItem('magpie_return_to',
-					window.location.pathname + window.location.search);
+					window.location.pathname + window.location.search + window.location.hash);
 			} catch (error) {
 				/* storage unavailable */
 			}

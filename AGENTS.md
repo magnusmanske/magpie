@@ -128,9 +128,17 @@ file, so a broken dictionary cannot become a per-request error.
   transfer queue. Licence IDs 4–5 and 7–12 are accepted; names and templates
   match the old `LICENSE_NAMES`/`LICENSE_TEMPLATES`.
 * Legacy Flickr deep links are query parameters (`photoid`, `userid`,
-  `photoset`, `group`, `tags`, `maxpics`) on `/flickr2commons/`. The old
-  history-mode routes (`/photo/…`, `/user/…`, …), tool translation and
+  `photoset`, `group`, `tags`, `maxpics`) on `/flickr2commons/`, and the
+  hash routes (`#/photo/…`, `#/user/…`, `#/photoset/…`, `#/group/…`,
+  `#/url/…`) with `tag`/`max_pictures` are parsed too. Tool translation and
   `logger.php` pings are not ported.
+* URL2Commons keeps the PHP flow: `urls`/`desc`/`simulate`/`run` can seed the
+  page (query or fragment), Simulate validates extensions, duplicate URLs and
+  filenames, and Commons existence, and the rendered description preview is
+  available before uploading.
+* The interface is English-only. CommonsHelper's `interface=` localisation
+  and Flickr2Commons' translatewiki language selector are deliberately not
+  ported.
 * Information templates and category suggestions come from FLinfo in the
   browser, with a local Information-template fallback. The per-file name check
   uses the Commons API directly; the bulk filename check uses `/api.php`.
@@ -157,16 +165,13 @@ file, so a broken dictionary cannot become a per-request error.
 
 1. Add front-end tests for the ported Flickr helpers (`commons.js` filename
    states, `flickr.js` listing/description) and capture a flinfo response as a
-   fixture. Port the old path-based routes and translation if they are still
-   used.
-2. Add `{{NowCommons}}` saving through `setpagetext` (and the matching
-   permission check) if users want it back.
-3. Capture CommonsHelper PHP output for representative files and add golden
+   fixture.
+2. Capture CommonsHelper PHP output for representative files and add golden
    tests; fix discrepancies that are real bugs rather than quirks.
-4. Add usage logging if the dashboard needs it.
-5. Wire `mediawiki_upload`'s `toolforge-replicas` feature for size/SHA-1
+3. Add usage logging if the dashboard needs it.
+4. Wire `mediawiki_upload`'s `toolforge-replicas` feature for size/SHA-1
    pre-checks, if a "check before upload" control is added.
-6. Publish `mediawiki_upload` or switch the dependency to git before the remote
+5. Publish `mediawiki_upload` or switch the dependency to git before the remote
    build.
 
 ## Environment / tooling pitfalls

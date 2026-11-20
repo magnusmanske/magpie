@@ -1,13 +1,18 @@
 Magpie.Views = Magpie.Views || {};
 
+/* A fallback only; the live list comes from Commons, which keeps adding
+   permitted extensions. */
+const URL2C_FALLBACK_TYPES = [
+	'png', 'gif', 'jpg', 'jpeg', 'tiff', 'tif', 'xcf', 'pdf', 'mid', 'midi',
+	'mp3', 'mpeg', 'mpg', 'ogg', 'ogv', 'svg', 'djvu', 'oga', 'flac', 'opus',
+	'stl', 'wav', 'webm', 'webp'
+];
+
 Magpie.Views.url2commons = {
 	template: `
 	<div>
 		<div class="magpie-card">
 			<h2>Url2Commons</h2>
-			<p class="magpie-hint">Enter one URL per line. After the URL, an optional file name.
-				After <span class="magpie-mono">|</span>, an optional description for
-				<span class="magpie-mono">$DESCRIPTOR$</span>.</p>
 			<div v-if="auth.checked && !auth.ok" class="magpie-card">
 				<strong>You are not logged in.</strong>
 				<a :href="authorizeUrl">Log in with OAuth</a> to upload under your own Commons account.
@@ -15,17 +20,31 @@ Magpie.Views.url2commons = {
 			<div class="magpie-field">
 				<label for="u2c-urls">URLs</label>
 				<textarea id="u2c-urls" v-model="urls" rows="6" class="form-control magpie-mono"></textarea>
+				<p class="magpie-hint">One URL per line. After the URL, an optional file name.
+					After <span class="magpie-mono">|</span>, an optional description key for
+					<span class="magpie-mono">$DESCRIPTOR$</span>. Use
+					<span class="magpie-mono">$NL$</span> for a newline and
+					<span class="magpie-mono">$US$</span> for an underscore.</p>
 			</div>
 			<div class="magpie-field">
 				<label for="u2c-desc">Description template</label>
 				<textarea id="u2c-desc" v-model="description" rows="9" class="form-control magpie-mono"></textarea>
+				<p class="magpie-hint"><span class="magpie-mono">$DESCRIPTOR$</span> is replaced per file;
+					<span class="magpie-mono">$URL$</span> with the source URL.</p>
 			</div>
 			<div class="magpie-row">
-				<label class="magpie-check"><input type="checkbox" v-model="ignorewarnings"> Ignore warnings</label>
-				<button class="btn btn-primary" :disabled="uploader.busy" @click="run">Upload</button>
-				<button class="btn btn-outline-secondary" :disabled="!uploader.busy" @click="uploader.stop">Stop</button>
+				<button class="btn btn-primary" :disabled="working" @click="simulate(true)">Simulate</button>
+				<button class="btn btn-outline-secondary" :disabled="working" @click="previewDescription">Preview description</button>
+				<button v-if="canUpload" class="btn btn-success" @click="simulate(false)">Upload</button>
 			</div>
 			<p v-if="message" class="magpie-status magpie-error">{{ message }}</p>
+			<p v-if="summary" class="magpie-status" :class="summaryClass">{{ summary }}</p>
+		</div>
+
+		<div class="magpie-card" v-if="previewHtml">
+			<h3>Description preview</h3>
+			<p class="magpie-hint">{{ previewMessage }}</p>
+			<div class="url2c-preview" v-html="previewHtml"></div>
 		</div>
 
 		<div class="magpie-card" v-if="items.length">
@@ -33,12 +52,15 @@ Magpie.Views.url2commons = {
 			<table class="magpie-table">
 				<thead><tr><th>File</th><th>Source</th><th>Status</th></tr></thead>
 				<tbody>
-					<tr v-for="(item, index) in items" :key="index">
-						<td class="magpie-mono">{{ item.newfile }}</td>
+					<tr v-for="item in items" :key="item.id">
+						<td>
+							<span class="magpie-mono">{{ item.newname || '(from URL)' }}</span>
+							<pre v-if="item.desc" class="url2c-desc">{{ item.desc }}</pre>
+						</td>
 						<td class="url">{{ item.sourceUrl }}</td>
 						<td class="magpie-status" :class="statusClass(item)">
-							<span v-if="item.page"><a :href="item.page" target="_blank">Uploaded</a></span>
-							<span v-else>{{ item.message || item.status }}</span>
+							<span v-if="item.page"><a :href="item.page" target="_blank" rel="noopener">Uploaded</a></span>
+							<span v-else>{{ item.message || statusLabel(item) }}</span>
 						</td>
 					</tr>
 				</tbody>
@@ -51,51 +73,301 @@ Magpie.Views.url2commons = {
 			authorizeUrl: Magpie.api.authorizeUrl(),
 			urls: '',
 			description: '=={{int:filedesc}}==\n{{Information\n| Description    = {{en|$DESCRIPTOR$}}\n| Date           =\n| Source         = $URL$\n| Author         =\n| Permission     =\n| Other_versions =\n}}\n\n[[Category:]]',
-			ignorewarnings: true,
 			items: [],
 			message: '',
-			uploader: Magpie.makeUploader(() => this.items)
+			previewHtml: '',
+			previewMessage: '',
+			allowedTypes: URL2C_FALLBACK_TYPES.slice(),
+			simulated: false,
+			simulating: false,
+			uploading: false,
+			badCount: 0,
+			mode: 'simulate'
 		};
 	},
-	mounted() {
-		Magpie.refreshAuth();
+	computed: {
+		working() {
+			return this.simulating || this.uploading;
+		},
+		canUpload() {
+			return this.auth.ok && this.simulated && !this.working
+				&& this.items.length > 0
+				&& this.items.every((item) => item.status === 'ok');
+		},
+		summary() {
+			if (this.working || !this.items.length) return '';
+			if (this.badCount > 0) {
+				const what = this.mode === 'simulate' ? 'simulation' : 'upload';
+				return this.badCount + ' ' + what + (this.badCount === 1 ? '' : 's') + ' failed; see the details above.';
+			}
+			if (this.mode === 'upload') {
+				return this.items.every((item) => item.status === 'done') ? 'All files uploaded!' : '';
+			}
+			return 'All simulations successful, you can upload if you are logged in!';
+		},
+		summaryClass() {
+			return this.badCount > 0 ? 'magpie-error' : 'magpie-ok';
+		}
+	},
+	async mounted() {
+		await Promise.all([Magpie.refreshAuth(), this.loadAllowedFileTypes()]);
+		const params = this.getUrlVars();
+		if (params.oauth_error) {
+			this.message = 'Login failed. The connection to Wikimedia was interrupted; please log in again.';
+		}
+		if (params.urls !== undefined) this.urls = params.urls;
+		if (params.desc !== undefined) this.description = params.desc;
+		if (params.run !== undefined) {
+			if (!this.auth.ok) {
+				this.message = 'Log in before starting an upload.';
+				await this.simulate(true);
+			} else {
+				await this.simulate(false);
+			}
+		} else if (params.simulate !== undefined) {
+			await this.simulate(true);
+		}
 	},
 	methods: {
 		statusClass(item) {
-			return Magpie.statusClass(item.status);
+			if (item.status === 'ok' || item.status === 'done') return 'good';
+			if (item.status === 'error') return 'bad';
+			return 'uploading';
 		},
-		guessName(url) {
+		statusLabel(item) {
+			if (item.status === 'checking') return 'Checking...';
+			if (item.status === 'uploading') return 'Uploading...';
+			if (item.status === 'ok') return 'Filename available.';
+			return '';
+		},
+		/* PHP's getUrlVars(): the fragment wins, and "_" means a space. */
+		getUrlVars() {
+			const vars = {};
+			let query = '';
+			const hash = window.location.hash || '';
+			if (hash.length > 1) query = hash.slice(1);
+			if (!query) query = window.location.search.replace(/^\?/, '');
+			if (!query) return vars;
+			new URLSearchParams(query).forEach((value, key) => {
+				vars[key] = value.replace(/_/g, ' ');
+			});
+			return vars;
+		},
+		async loadAllowedFileTypes() {
 			try {
-				const path = new URL(url).pathname;
-				const last = decodeURIComponent(path.split('/').filter(Boolean).pop() || '');
-				return last || 'File';
-			} catch (e) {
-				return 'File';
+				const url = new URL('https://commons.wikimedia.org/w/api.php');
+				url.search = new URLSearchParams({
+					action: 'query',
+					meta: 'siteinfo',
+					siprop: 'fileextensions',
+					format: 'json',
+					origin: '*'
+				}).toString();
+				const response = await fetch(url);
+				if (!response.ok) return;
+				const data = await response.json();
+				const list = ((data.query || {}).fileextensions || [])
+					.map((entry) => String(entry.ext || '').toLowerCase())
+					.filter(Boolean);
+				if (list.length) this.allowedTypes = list;
+			} catch (error) {
+				/* Keep the fallback list. */
 			}
 		},
-		run() {
-			const lines = Magpie.parseUrlLines(this.urls);
+		parseLine(line, id) {
+			line = String(line || '').trim();
+			if (!line) return null;
+			let match = line.match(/^(\S+)\s(.*?)\|(.*)$/);
+			if (!match) match = line.match(/^(\S+)\s(.*)$/);
+			if (!match) match = line.match(/^(\S+)$/);
+			if (!match) return null;
+			return {
+				id: 'url_' + id,
+				sourceUrl: match[1].replace(/\$US\$/g, '_'),
+				newname: match[2] || '',
+				descriptor: match[3] || '',
+				desc: '',
+				status: 'checking',
+				message: '',
+				page: ''
+			};
+		},
+		rows() {
+			return String(this.urls || '').split('\n')
+				.map((line, index) => this.parseLine(line, index))
+				.filter(Boolean);
+		},
+		async simulate(upload) {
+			if (this.working) return;
 			this.message = '';
-			if (!lines.length) {
+			this.previewHtml = '';
+			this.mode = upload ? 'upload' : 'simulate';
+			this.items = this.rows();
+			this.badCount = 0;
+			this.simulated = false;
+			if (!this.items.length) {
 				this.message = 'Please enter at least one URL.';
 				return;
 			}
-			this.items = lines.map((line) => {
-				const descriptor = line.descriptor || this.guessName(line.url);
-				const name = line.name || this.guessName(line.url);
-				return {
-					sourceUrl: line.url,
-					newfile: Magpie.fileName(name),
-					desc: Magpie.fillDescription(this.description, { url: line.url, descriptor: descriptor }),
-					comment: 'Transferred from ' + line.url + ' using magpie',
-					ignorewarnings: this.ignorewarnings,
-					blockwarnings: '',
-					status: 'ready',
-					message: '',
-					page: ''
-				};
+
+			const seenUrls = new Set();
+			const seenNames = new Set();
+			this.simulating = true;
+			for (const item of this.items) {
+				if (item.status === 'error') {
+					this.badCount++;
+					continue;
+				}
+				await this.checkItem(item, seenUrls, seenNames);
+				if (item.status === 'error') this.badCount++;
+			}
+			this.simulating = false;
+			if (upload && this.badCount === 0) await this.uploadAll();
+			else this.simulated = !upload && this.badCount === 0;
+		},
+		async checkItem(item, seenUrls, seenNames) {
+			try {
+				if (seenUrls.has(item.sourceUrl)) {
+					return this.fail(item, 'You are already trying to upload a file with this URL!');
+				}
+				seenUrls.add(item.sourceUrl);
+
+				if (item.newname === '') {
+					const parts = item.sourceUrl.split('/');
+					item.newname = parts.pop();
+				}
+				item.newname = item.newname.replace(/^\s*(File|Image)\s*:\s*/i, '');
+
+				const type = item.newname.split('.').pop().toLowerCase().trim();
+				if (!this.allowedTypes.includes(type)) {
+					return this.fail(item, '"' + type + '" is not a supported file name!');
+				}
+				if (seenNames.has(item.newname)) {
+					return this.fail(item, 'You are already trying to upload a file with this filename!');
+				}
+				seenNames.add(item.newname);
+
+				item.desc = Magpie.fillDescription(this.description, {
+					url: item.sourceUrl,
+					descriptor: item.descriptor
+				});
+
+				const answer = await Magpie.api.flickrExisting([item.newname]);
+				if (answer.status !== 'OK') {
+					return this.fail(item, 'Could not check the filename on Commons; please try again.');
+				}
+				const status = ((answer.data || {}).files || {})[Magpie.fileName(item.newname)];
+				if (status === 1) {
+					return this.fail(item, 'A file of this name already exists on Commons: ' + item.newname
+						+ ' — please give this upload a different name.');
+				}
+				item.status = 'ok';
+				item.message = 'Filename available.';
+			} catch (error) {
+				this.fail(item, 'Could not check this file: ' + String(error.message || error));
+			}
+		},
+		fail(item, message) {
+			item.status = 'error';
+			item.message = message;
+			return item;
+		},
+		async uploadAll() {
+			this.uploading = true;
+			this.simulated = false;
+			for (const item of this.items) {
+				item.status = 'uploading';
+				item.message = 'Uploading file to Commons...';
+				try {
+					const result = await Magpie.api.uploadFromUrl({
+						url: item.sourceUrl,
+						newfile: item.newname,
+						desc: item.desc,
+						comment: 'Transferred from ' + item.sourceUrl + ' using URL2Commons',
+						ignorewarnings: false,
+						blockwarnings: ''
+					});
+					if (result.error && result.error !== 'OK') {
+						item.status = 'error';
+						item.message = Magpie.uploadFailure(result);
+						this.badCount++;
+					} else {
+						const uploaded = result.res && result.res.upload && result.res.upload.filename;
+						item.status = 'done';
+						item.page = Magpie.commonsPage(uploaded || item.newname);
+						item.message = 'SUCCESS!';
+					}
+				} catch (error) {
+					item.status = 'error';
+					item.message = 'ERROR: the upload request itself failed (' + String(error.message || error) + ')';
+					this.badCount++;
+				}
+				await Magpie.sleep(300);
+			}
+			this.uploading = false;
+		},
+		async previewDescription() {
+			this.previewHtml = '';
+			let first = null;
+			for (const item of this.rows()) {
+				first = item;
+				break;
+			}
+			this.previewMessage = first
+				? 'Placeholders filled in from the first URL line.'
+				: 'No URL entered, so $DESCRIPTOR$ and $URL$ are empty.';
+
+			const text = Magpie.fillDescription(this.description, {
+				url: first ? first.sourceUrl : '',
+				descriptor: first ? first.descriptor : ''
 			});
-			this.uploader.run();
+			try {
+				const response = await fetch('https://commons.wikimedia.org/w/api.php', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+					body: new URLSearchParams({
+						action: 'parse',
+						format: 'json',
+						contentmodel: 'wikitext',
+						prop: 'text',
+						origin: '*',
+						disableeditsection: '1',
+						title: 'File:Example.jpg',
+						text: text
+					}).toString()
+				});
+				if (!response.ok) throw new Error('HTTP ' + response.status);
+				const data = await response.json();
+				const html = ((data.parse || {}).text || {})['*'];
+				if (html === undefined) {
+					this.previewMessage = ((data.error || {}).info) || 'Commons could not render this description.';
+					return;
+				}
+				this.previewHtml = this.sanitizePreview(html);
+			} catch (error) {
+				this.previewMessage = 'Could not reach the Commons API to render the preview.';
+			}
+		},
+		/* Commons sanitises parsed wikitext, but never trust HTML from a
+		   user-controlled description in our own document. */
+		sanitizePreview(html) {
+			const doc = new DOMParser().parseFromString(html, 'text/html');
+			doc.querySelectorAll('script,style,iframe,object,embed,link,meta,form,input,button').forEach((node) => node.remove());
+			doc.querySelectorAll('*').forEach((node) => {
+				Array.from(node.attributes).forEach((attribute) => {
+					const name = attribute.name.toLowerCase();
+					if (name.startsWith('on')) node.removeAttribute(attribute.name);
+					if ((name === 'href' || name === 'src') && /^\s*javascript:/i.test(attribute.value)) {
+						node.removeAttribute(attribute.name);
+					}
+				});
+			});
+			doc.querySelectorAll('a[href^="/"]').forEach((link) => {
+				link.setAttribute('href', 'https://commons.wikimedia.org' + link.getAttribute('href'));
+				link.setAttribute('target', '_blank');
+				link.setAttribute('rel', 'noopener');
+			});
+			return doc.body.innerHTML;
 		}
 	}
 };

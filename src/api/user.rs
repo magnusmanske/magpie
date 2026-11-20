@@ -64,22 +64,33 @@ impl User<'_> {
             .ok_or_else(|| format!("Bad API response: {answer}"))
     }
 
-    pub async fn edit_page(&self, page: &str, text: &str) -> Result<(), String> {
+    pub async fn edit_page(
+        &self,
+        page: &str,
+        text: &str,
+        summary: &str,
+        basetimestamp: &str,
+    ) -> Result<(), String> {
         self.check().await?;
         let text = text.trim();
         if text.is_empty() {
             return Err("No text given".to_string());
         }
         let token = self.csrf_token().await?;
-        let answer = self
-            .api(&[
-                ("action", "edit"),
-                ("title", page.trim()),
-                ("text", text),
-                ("minor", ""),
-                ("token", &token),
-            ])
-            .await?;
+        let summary = summary.trim();
+        let basetimestamp = basetimestamp.trim();
+        let mut params = vec![
+            ("action", "edit"),
+            ("title", page.trim()),
+            ("text", text),
+            ("summary", summary),
+            ("minor", ""),
+            ("token", token.as_str()),
+        ];
+        if !basetimestamp.is_empty() {
+            params.push(("basetimestamp", basetimestamp));
+        }
+        let answer = self.api(&params).await?;
         api_error(&answer).map_or(Ok(()), Err)?;
         tokio::time::sleep(EDIT_DELAY).await;
         Ok(())

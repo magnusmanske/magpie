@@ -144,7 +144,7 @@ Magpie.Views.geograph2commons = {
 				sourceUrl: hires,
 				newfile: Magpie.fileName(newfile),
 				desc: description,
-				comment: 'Transferred from ' + this.server + ' using magpie',
+				comment: 'Transferred from ' + this.server + ' using [https://geograph2commons.toolforge.org/ geograph2commons]',
 				ignorewarnings: true,
 				blockwarnings: '',
 				status: 'ready',
@@ -159,9 +159,10 @@ Magpie.Views.geograph2commons = {
 			this.row.message = '';
 			try {
 				const result = await Magpie.api.uploadFromUrl(this.row);
-				if (result.error && result.error !== 'OK') throw new Error(result.error);
+				if (result.error && result.error !== 'OK') throw new Error(Magpie.uploadFailure(result));
 				this.row.status = 'done';
-				this.row.page = Magpie.commonsPage(this.row.newfile);
+				const uploaded = result.res && result.res.upload && result.res.upload.filename;
+				this.row.page = Magpie.commonsPage(uploaded || this.row.newfile);
 				this.row.message = 'Uploaded';
 			} catch (error) {
 				this.row.status = 'error';
