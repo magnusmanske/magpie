@@ -34,7 +34,7 @@ Magpie.makeUploader = function (items) {
 						} else {
 							item.status = 'done';
 							item.page = Magpie.commonsPage(item.newfile);
-							item.message = 'Uploaded';
+							item.message = Magpie.t('magpie_uploaded');
 						}
 					} catch (error) {
 						item.status = 'error';

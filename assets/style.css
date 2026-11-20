@@ -42,6 +42,8 @@ body {
 .magpie-nav a { padding: .35rem .6rem; border-radius: .35rem; color: inherit; text-decoration: none; }
 .magpie-nav a:hover { background: var(--magpie-bg-soft); text-decoration: none; }
 .magpie-nav a.router-link-active { background: var(--magpie-accent); color: #fff; }
+.magpie-language { display: inline-flex; align-items: center; gap: .35rem; font-size: .85rem; color: var(--magpie-muted); }
+.magpie-language select { padding: .15rem .3rem; border: 1px solid var(--magpie-border); border-radius: .25rem; background: var(--magpie-bg); color: inherit; }
 
 .magpie-card { border: 1px solid var(--magpie-border); border-radius: .5rem; padding: 1rem; margin-bottom: 1rem; background: var(--magpie-bg); }
 .magpie-card h2, .magpie-card h3 { margin-top: 0; }

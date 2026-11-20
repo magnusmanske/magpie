@@ -304,13 +304,9 @@ Magpie.commons = (function () {
 			return job;
 		},
 
-		/* A translated message would live here; magpie is English-only. */
+		/* The translated message, with the English key value as the fallback. */
 		msg(key, fallback, params) {
-			if (!params) return fallback;
-			return String(fallback).replace(/\$(\d+)/g, (whole, index) => {
-				const value = params[Number(index) - 1];
-				return value === undefined ? whole : String(value);
-			});
+			return Magpie.t(key, params);
 		},
 
 		skippedFileMessages({ nonFree = 0, noUrl = 0, loaded = 0 } = {}) {

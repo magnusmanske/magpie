@@ -88,6 +88,7 @@ Magpie.uploadFailure = function (result) {
 	const upload = res.upload || {};
 	const warnings = upload.warnings;
 	const file = (name) => String(name == null ? '' : name).replace(/^File:/, '');
+	const t = Magpie.t;
 
 	if (warnings) {
 		const parts = [];
@@ -98,38 +99,39 @@ Magpie.uploadFailure = function (result) {
 		};
 		let value;
 		if ((value = take('duplicate')) !== undefined && value.length) {
-			parts.push('the identical file is already on Commons as ' + file(value[0]));
+			parts.push(t('magpie_upload_identical_exists', [file(value[0])]));
 		}
-		if ((value = take('exists')) !== undefined) parts.push('a different file already uses this name: ' + file(value));
-		if ((value = take('exists-normalized')) !== undefined) parts.push('a file with an equivalent name exists: ' + file(value));
-		if ((value = take('duplicate-archive')) !== undefined) parts.push('an identical file was uploaded and deleted before: ' + file(value));
-		if ((value = take('was-deleted')) !== undefined) parts.push('this filename was deleted before: ' + file(value));
-		if ((value = take('badfilename')) !== undefined) parts.push('Commons would rename this file to "' + value + '"');
-		if (take('emptyfile') !== undefined) parts.push('the file downloaded from the source URL was empty (the source may block automated downloads)');
+		if ((value = take('exists')) !== undefined) parts.push(t('magpie_upload_other_name', [file(value)]));
+		if ((value = take('exists-normalized')) !== undefined) parts.push(t('magpie_upload_equivalent_name', [file(value)]));
+		if ((value = take('duplicate-archive')) !== undefined) parts.push(t('magpie_upload_deleted_before', [file(value)]));
+		if ((value = take('was-deleted')) !== undefined) parts.push(t('magpie_upload_name_deleted', [file(value)]));
+		if ((value = take('badfilename')) !== undefined) parts.push(t('magpie_upload_would_rename', [value]));
+		if (take('emptyfile') !== undefined) parts.push(t('magpie_upload_empty'));
 		const unwanted = take('filetype-unwanted-type');
 		const banned = take('filetype-banned');
-		if (unwanted !== undefined || banned !== undefined) parts.push('this file type is not allowed on Commons');
-		if (take('large-file') !== undefined) parts.push('the file is larger than Commons allows');
-		if (take('was-deleted-archive') !== undefined) parts.push('an earlier version of this file was deleted');
+		if (unwanted !== undefined || banned !== undefined) parts.push(t('magpie_upload_type_not_allowed'));
+		if (take('large-file') !== undefined) parts.push(t('magpie_upload_too_large'));
+		if (take('was-deleted-archive') !== undefined) parts.push(t('magpie_upload_old_version_deleted'));
 		Object.keys(warnings).forEach((key) => {
 			if (known.has(key)) return;
 			let extra = key;
 			if (warnings[key] !== '' && warnings[key] !== true) extra += ': ' + JSON.stringify(warnings[key]);
 			parts.push(extra);
 		});
-		if (parts.length) return 'Not uploaded: ' + parts.join('; ') + '.';
+		if (parts.length) return t('magpie_upload_not_uploaded', [parts.join('; ')]);
 	}
 
 	if (res.error) {
 		const info = res.error.info || res.error.code || '';
 		if (info) {
-			return 'ERROR: ' + info + (res.error.code && res.error.info ? ' [' + res.error.code + ']' : '');
+			const detail = info + (res.error.code && res.error.info ? ' [' + res.error.code + ']' : '');
+			return t('magpie_upload_failure_error', [detail]);
 		}
 	}
 
 	const error = result && result.error;
-	if (error && error !== 'OK') return 'ERROR: ' + error;
-	return 'ERROR: the upload failed, but Commons gave no reason. Please retry; if it keeps failing, report this URL.';
+	if (error && error !== 'OK') return t('magpie_upload_failure_error', [error]);
+	return t('magpie_upload_failure_error', [t('magpie_upload_generic_failed')]);
 };
 
 /* PHP's get_request() truthiness for a checkbox or flag parameter. */

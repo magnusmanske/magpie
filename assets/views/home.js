@@ -4,13 +4,13 @@ Magpie.Views.home = {
 	template: `
 	<div>
 		<div class="magpie-card">
-			<h2>Move files to Wikimedia Commons</h2>
-			<p class="magpie-hint">Collects shiny things (files) from the web and takes them back to the nest (Wikimedia Commons).</p>
+			<h2>{{ t('magpie_home_heading') }}</h2>
+			<p class="magpie-hint">{{ t('magpie_home_intro') }}</p>
 			<div class="row">
 				<div class="col-md-6" v-for="tool in tools" :key="tool.to">
 					<div class="magpie-card">
-						<h3><router-link :to="tool.to">{{ tool.name }}</router-link></h3>
-						<p>{{ tool.description }}</p>
+						<h3><router-link :to="tool.to">{{ t(tool.name) }}</router-link></h3>
+						<p>{{ t(tool.description) }}</p>
 					</div>
 				</div>
 			</div>
@@ -19,10 +19,10 @@ Magpie.Views.home = {
 	data() {
 		return {
 			tools: [
-				{ to: '/flickr2commons/', name: 'Flickr2Commons', description: 'Batch-upload free Flickr photos, with duplicate checks.' },
-				{ to: '/url2commons/', name: 'Url2Commons', description: 'Upload files from URLs, one or many at a time.' },
-				{ to: '/geograph2commons/', name: 'Geograph2Commons', description: 'Transfer a Geograph photo with its description and coordinates.' },
-				{ to: '/commonshelper/', name: 'CommonsHelper', description: 'Move a file from another wiki, translating its description and license.' }
+				{ to: '/flickr2commons/', name: 'magpie_tool_flickr2commons', description: 'magpie_tool_flickr2commons_desc' },
+				{ to: '/url2commons/', name: 'magpie_tool_url2commons', description: 'magpie_tool_url2commons_desc' },
+				{ to: '/geograph2commons/', name: 'magpie_tool_geograph2commons', description: 'magpie_tool_geograph2commons_desc' },
+				{ to: '/commonshelper/', name: 'magpie_tool_commonshelper', description: 'magpie_tool_commonshelper_desc' }
 			]
 		};
 	}

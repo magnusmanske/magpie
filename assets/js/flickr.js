@@ -83,7 +83,7 @@ Magpie.flickr = (function () {
 			action: 'flickr_api',
 			params: JSON.stringify(Object.assign({ method: method }, params || {}))
 		});
-		if (answer.stat !== 'ok') throw new Error(answer.message || 'The Flickr API returned an error');
+		if (answer.stat !== 'ok') throw new Error(answer.message || Magpie.t('magpie_flickr_api_error'));
 		return answer;
 	}
 
@@ -91,7 +91,7 @@ Magpie.flickr = (function () {
 		const target = new URL(url);
 		Object.keys(params || {}).forEach((key) => target.searchParams.set(key, params[key]));
 		const response = await fetch(target);
-		if (!response.ok) throw new Error('HTTP ' + response.status);
+		if (!response.ok) throw new Error(Magpie.t('magpie_http_error', [response.status]));
 		return response.json();
 	}
 
@@ -215,7 +215,7 @@ Magpie.flickr = (function () {
 				}
 				const data = await api(apiKey, request.method, request);
 				const container = data[resultKey];
-				if (!container) throw new Error('The Flickr API returned no ' + resultKey);
+				if (!container) throw new Error(Magpie.t('magpie_flickr_no_result', [resultKey]));
 				const rawOwner = container.owner;
 				const owner = typeof rawOwner === 'object'
 					? (rawOwner && (rawOwner.nsid || text(rawOwner)))
@@ -282,7 +282,7 @@ Magpie.flickr = (function () {
 				repo: 'flickr',
 				format: 'json'
 			});
-			if (!data.wiki || data.wiki.status !== 0) throw new Error('Could not load category suggestions');
+			if (!data.wiki || data.wiki.status !== 0) throw new Error(Magpie.t('magpie_could_not_load_suggestions'));
 			return (data.wiki.categories || [])
 				.map((category) => String(category).replace(/^Category:/i, '').trim())
 				.filter(Boolean);
@@ -301,13 +301,13 @@ Magpie.flickr = (function () {
 			if (!data.wiki || data.wiki.status !== 0) {
 				const status = data.wiki && data.wiki.status;
 				const errors = {
-					1: 'Flinfo server failure. Try again.',
-					3: 'Flinfo internal error.',
-					4: "Flinfo says 'bad user'.",
-					5: "Flinfo says 'invalid ID'.",
-					6: "Flinfo says 'missing ID'."
+					1: Magpie.t('magpie_flinfo_server_failure'),
+					3: Magpie.t('magpie_flinfo_internal_error'),
+					4: Magpie.t('magpie_flinfo_bad_user'),
+					5: Magpie.t('magpie_flinfo_invalid_id'),
+					6: Magpie.t('magpie_flinfo_missing_id')
 				};
-				return { error: errors[status] || 'FLinfo issue: ' + status };
+				return { error: errors[status] || Magpie.t('magpie_flinfo_issue', [status]) };
 			}
 
 			const info = data.wiki.info || {};

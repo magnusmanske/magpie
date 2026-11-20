@@ -95,6 +95,10 @@ checking the originals:
   `["Information","Tiedoston tiedot"]` accordingly).
 * `data/transwiki.json` ← `transwiki_data.php`, as
   `{language: {local template: Commons template}}`.
+* `data/*.json` does not contain translations. Interface strings live only
+  in the Tooltranslate `magpie` tool; `scripts/build_i18n.py` reads the
+  published data, adds new keys, and emits import SQL. Do not copy translation
+  snapshots into the repository.
 
 `Catalog::load()` parses all three at start-up and fails the process on a bad
 file, so a broken dictionary cannot become a per-request error.
@@ -130,15 +134,17 @@ file, so a broken dictionary cannot become a per-request error.
 * Legacy Flickr deep links are query parameters (`photoid`, `userid`,
   `photoset`, `group`, `tags`, `maxpics`) on `/flickr2commons/`, and the
   hash routes (`#/photo/…`, `#/user/…`, `#/photoset/…`, `#/group/…`,
-  `#/url/…`) with `tag`/`max_pictures` are parsed too. Tool translation and
-  `logger.php` pings are not ported.
+  `#/url/…`) with `tag`/`max_pictures` are parsed too. `logger.php` pings are
+  replaced by `wikimisc` telemetry.
 * URL2Commons keeps the PHP flow: `urls`/`desc`/`simulate`/`run` can seed the
   page (query or fragment), Simulate validates extensions, duplicate URLs and
   filenames, and Commons existence, and the rendered description preview is
   available before uploading.
-* The interface is English-only. CommonsHelper's `interface=` localisation
-  and Flickr2Commons' translatewiki language selector are deliberately not
-  ported.
+* The interface is translated through Tooltranslate. The `magpie` tool holds
+  all strings; the browser fetches the published snapshots, and missing keys
+  fall back to English. `scripts/build_i18n.py` documents how the import SQL
+  is made. `interface_language=…` and the `interface_language` cookie select
+  the language. No translation data is stored in this repository.
 * Information templates and category suggestions come from FLinfo in the
   browser, with a local Information-template fallback. The per-file name check
   uses the Commons API directly; the bulk filename check uses `/api.php`.

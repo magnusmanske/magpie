@@ -39,7 +39,7 @@ Magpie.Views.flickr2commons = (function () {
 	}
 
 	function message(key, fallback, params) {
-		return Magpie.commons.msg(key, fallback, params);
+		return Magpie.t(key, params);
 	}
 
 	return {
@@ -60,19 +60,19 @@ Magpie.Views.flickr2commons = (function () {
 				</div>
 			</div>
 			<div v-if="running || checking_commons" class="analysis-progress f2c-status-message__progress"
-				role="progressbar" aria-label="Loading"></div>
+				role="progressbar" :aria-label="t('magpie_loading')"></div>
 
 			<div v-if="form_is_visible" class="f2c-input-form magpie-card mt-3">
-				<p class="f2c-tool-description">Flickr-to-Commons is a web application for batch uploading Flickr files to Wikimedia Commons, the media repository powering Wikipedia.</p>
+				<p class="f2c-tool-description">{{ t('f2c_intro') }}</p>
 				<div v-if="keyStatus" class="magpie-error mb-2">{{ keyStatus }}</div>
 				<div v-if="auth.checked && !auth.ok" class="f2c-login-action">
-					<a :href="authorizeUrl" class="btn btn-primary btn-sm" @click="rememberRouteForLogin">Log in</a>
-					<span class="magpie-hint">to upload under your own Commons account.</span>
+					<a :href="authorizeUrl" class="btn btn-primary btn-sm" @click="rememberRouteForLogin">{{ t('f2c_log_in') }}</a>
+					<span class="magpie-hint">{{ t('magpie_login_hint') }}</span>
 				</div>
 				<form v-if="is_authorized" @submit.prevent="doRun">
 					<div class="magpie-field">
-						<label for="f2c-input">Flickr URL or ID</label>
-						<p class="f2c-field-hint">Enter a Flickr photo, album, group, or user URL or ID.</p>
+						<label for="f2c-input">{{ t('f2c_flickr_url_or_id') }}</label>
+						<p class="f2c-field-hint">{{ t('f2c_flickr_url_or_id_hint') }}</p>
 						<div class="f2c-input-row">
 							<input id="f2c-input" type="text" class="form-control" v-model="combined_input"
 								@input="pending_route = null">
@@ -82,8 +82,8 @@ Magpie.Views.flickr2commons = (function () {
 						</div>
 					</div>
 					<div class="magpie-field">
-						<label for="f2c-flickr-tag">Flickr tag filter</label>
-						<p class="f2c-field-hint">Optionally limit the results to photos with this Flickr tag. Separate multiple tags with a comma.</p>
+						<label for="f2c-flickr-tag">{{ t('flickr_tag') }}</label>
+						<p class="f2c-field-hint">{{ t('flickr_tag_tt') }}</p>
 						<input id="f2c-flickr-tag" type="text" class="form-control" v-model="tag"
 							autocomplete="off" @keyup="validateTag">
 						<div v-if="tag_warning" class="f2c-filename-notice f2c-filename-notice--input f2c-filename-notice--warning">
@@ -91,24 +91,24 @@ Magpie.Views.flickr2commons = (function () {
 						</div>
 					</div>
 					<div class="magpie-field">
-						<label for="f2c-max-pictures">Maximum number of photos</label>
-						<p class="f2c-field-hint">Limits how many photos are loaded from Flickr.<br>
-							Leave blank for “unlimited”.</p>
+						<label for="f2c-max-pictures">{{ t('max_pictures') }}</label>
+						<p class="f2c-field-hint">{{ t('f2c_max_pictures_hint') }}<br>
+							{{ t('f2c_max_pictures_unlimited') }}</p>
 						<input id="f2c-max-pictures" type="number" min="0" class="form-control" v-model="max_pictures">
 					</div>
 					<div class="mt-3">
-						<button type="submit" class="btn btn-primary" :disabled="!apiKey">Start</button>
+						<button type="submit" class="btn btn-primary" :disabled="!apiKey">{{ t('f2c_start') }}</button>
 					</div>
 				</form>
 			</div>
 
 			<div v-if="!auth.checked" class="f2c-form-auth-loading" aria-live="polite" aria-busy="true">
-				<div class="analysis-progress" role="progressbar" aria-label="Checking login"></div>
+				<div class="analysis-progress" role="progressbar" :aria-label="t('magpie_checking_login')"></div>
 			</div>
 
 			<div v-if="!running && has_run" class="results-section mt-3">
 				<div class="f2c-results-toolbar">
-					<button type="button" class="btn btn-sm btn-outline-secondary" @click.prevent="resetSearch">New search</button>
+					<button type="button" class="btn btn-sm btn-outline-secondary" @click.prevent="resetSearch">{{ t('magpie_new_search') }}</button>
 				</div>
 				<div v-for="(text, index) in skipped_messages" :key="'skipped-' + index" class="f2c-status-message" role="status">
 					<div class="f2c-message f2c-message--warning">
@@ -116,7 +116,7 @@ Magpie.Views.flickr2commons = (function () {
 					</div>
 				</div>
 
-				<aside v-if="loaded_context" class="f2c-source-info" aria-label="Loaded Flickr source">
+				<aside v-if="loaded_context" class="f2c-source-info" :aria-label="t('magpie_loaded_source_aria')">
 					<div class="f2c-source-info__content">
 						<strong class="f2c-source-info__type">{{ loaded_context_type }}</strong>
 						<a v-if="loaded_context.href" class="f2c-source-info__title"
@@ -124,16 +124,16 @@ Magpie.Views.flickr2commons = (function () {
 						<strong v-else class="f2c-source-info__title">{{ loaded_context.title || loaded_context.label }}</strong>
 						<dl class="f2c-source-info__details">
 							<div v-if="loaded_context.author" class="f2c-source-info__row">
-								<dt>Author</dt><dd>{{ loaded_context.author }}</dd>
+								<dt>{{ t('magpie_author') }}</dt><dd>{{ loaded_context.author }}</dd>
 							</div>
 							<div v-if="loaded_license_summary" class="f2c-source-info__row">
-								<dt>License</dt><dd>{{ loaded_license_summary }}</dd>
+								<dt>{{ t('magpie_license') }}</dt><dd>{{ loaded_license_summary }}</dd>
 							</div>
 							<div v-if="loaded_context.description" class="f2c-source-info__row f2c-source-info__row--description">
-								<dt>Description</dt><dd>{{ loaded_context.description }}</dd>
+								<dt>{{ t('description') }}</dt><dd>{{ loaded_context.description }}</dd>
 							</div>
 						</dl>
-						<small>{{ files.length }} freely licensed {{ files.length === 1 ? 'file' : 'files' }} loaded</small>
+						<small>{{ files.length === 1 ? t('magpie_file_loaded', [files.length]) : t('magpie_files_loaded', [files.length]) }}</small>
 					</div>
 				</aside>
 
@@ -141,121 +141,121 @@ Magpie.Views.flickr2commons = (function () {
 					<div class="f2c-message f2c-message--warning">
 						<div class="f2c-message__content">
 							<span>{{ pd_warning_message }}</span>
-							<p class="f2c-field-hint">Enter the Commons licence template that says why these files are in the public domain. It is added to those files only, alongside the Flickr tag.</p>
+							<p class="f2c-field-hint">{{ t('f2c_pd_rationale_hint') }}</p>
 							<input type="text" class="form-control f2c-pd-rationale__input" v-model="pd_rationale"
 								list="f2c-pd-rationale-list" placeholder="PD-US-expired"
-								aria-label="Public domain licence template">
+								:aria-label="t('magpie_pd_rationale_aria')">
 							<datalist id="f2c-pd-rationale-list">
 								<option v-for="template in pd_rationale_suggestions" :key="template" :value="template"></option>
 							</datalist>
-							<p v-if="pd_rationale_template" class="f2c-pd-rationale__preview">Will be added to {{ generic_pd_files.length }} files: <code>{{ pd_rationale_preview }}</code></p>
+							<p v-if="pd_rationale_template" class="f2c-pd-rationale__preview">{{ t('f2c_pd_rationale_preview', [generic_pd_files.length]) }} <code>{{ pd_rationale_preview }}</code></p>
 						</div>
 					</div>
 				</div>
 
 				<div class="options-panel magpie-card">
-					<h2 class="f2c-options-heading">Options</h2>
+					<h2 class="f2c-options-heading">{{ t('f2c_options') }}</h2>
 					<label class="magpie-check" for="use_flickr_descriptions">
 						<input id="use_flickr_descriptions" type="checkbox" v-model="use_flickr_descriptions">
-						<span>Use descriptions from Flickr</span>
+						<span>{{ t('f2c_use_flickr_descriptions') }}</span>
 					</label>
-					<p class="f2c-field-hint">Used when a file does not have a manually entered description.</p>
+					<p class="f2c-field-hint">{{ t('f2c_use_flickr_descriptions_hint') }}</p>
 
 					<div class="magpie-field">
-						<label for="f2c-add-description">Append to every description</label>
+						<label for="f2c-add-description">{{ t('add2every_desc') }}</label>
 						<textarea id="f2c-add-description" rows="2" class="form-control" v-model="add2every_desc"></textarea>
 					</div>
 					<div class="magpie-field">
-						<label for="f2c-append-everywhere">Append to every page</label>
-						<p class="f2c-field-hint">Wikitext added at the end of every file page, for example categories or templates.</p>
+						<label for="f2c-append-everywhere">{{ t('append_everywhere') }}</label>
+						<p class="f2c-field-hint">{{ t('f2c_append_everywhere_hint') }}</p>
 						<textarea id="f2c-append-everywhere" rows="2" class="form-control" v-model="append_everywhere"></textarea>
 					</div>
 
 					<fieldset class="f2c-tag-fieldset">
-						<legend class="f2c-fieldset-legend">Bulk-action scope</legend>
-						<p class="f2c-field-hint">Choose which loaded files selection and title actions should affect.</p>
+						<legend class="f2c-fieldset-legend">{{ t('f2c_bulk_action_scope') }}</legend>
+						<p class="f2c-field-hint">{{ t('f2c_bulk_action_scope_hint') }}</p>
 						<div class="f2c-scope-options">
 							<label class="f2c-tag-radio">
 								<input type="radio" name="which_files" v-model="which_files" value="all">
-								<span class="f2c-scope-label"><strong>All available files</strong><small>Every file that can still be uploaded.</small></span>
+								<span class="f2c-scope-label"><strong>{{ t('f2c_all_available_files') }}</strong><small>{{ t('f2c_all_available_files_hint') }}</small></span>
 							</label>
 							<label class="f2c-tag-radio">
 								<input type="radio" name="which_files" v-model="which_files" value="issues">
-								<span class="f2c-scope-label"><strong>Filename issues</strong><small>Titles that exist, were deleted, or are too generic.</small></span>
+								<span class="f2c-scope-label"><strong>{{ t('f2c_filename_issues') }}</strong><small>{{ t('f2c_filename_issues_hint') }}</small></span>
 							</label>
 							<label v-if="Object.keys(tags).length > 0" class="f2c-tag-radio">
 								<input type="radio" name="which_files" v-model="which_files" value="with">
-								<span class="f2c-scope-label"><strong>Files with tag</strong><small>Only files containing the chosen Flickr tag.</small></span>
+								<span class="f2c-scope-label"><strong>{{ t('f2c_files_with_tag') }}</strong><small>{{ t('f2c_files_with_tag_hint') }}</small></span>
 							</label>
 							<label v-if="Object.keys(tags).length > 0" class="f2c-tag-radio">
 								<input type="radio" name="which_files" v-model="which_files" value="without">
-								<span class="f2c-scope-label"><strong>Files without tag</strong><small>Files that do not contain the chosen Flickr tag.</small></span>
+								<span class="f2c-scope-label"><strong>{{ t('f2c_files_without_tag') }}</strong><small>{{ t('f2c_files_without_tag_hint') }}</small></span>
 							</label>
 						</div>
 						<label v-if="Object.keys(tags).length > 0 && (which_files === 'with' || which_files === 'without')"
 							class="f2c-tag-picker mt-2" for="f2c-selected-tag">
-							<span>Tag</span>
+							<span>{{ t('f2c_tag') }}</span>
 							<select id="f2c-selected-tag" class="form-control" v-model="selected_tag">
 								<option v-for="(list, tagName) in tags" :key="tagName" :value="tagName">{{ tagName }} ({{ list.length }})</option>
 							</select>
 						</label>
 						<div class="f2c-scope-actions">
-							<span class="f2c-scope-count">{{ getFilesInTagSelection().length }} matching {{ getFilesInTagSelection().length === 1 ? 'file' : 'files' }}</span>
+							<span class="f2c-scope-count">{{ getFilesInTagSelection().length === 1 ? t('magpie_matching_file', [getFilesInTagSelection().length]) : t('magpie_matching_files', [getFilesInTagSelection().length]) }}</span>
 							<div>
-								<button type="button" class="btn btn-sm btn-primary" @click.prevent="doSelectAll">Select matching files</button>
-								<button type="button" class="btn btn-sm btn-outline-secondary" @click.prevent="doDeselectAll">Deselect matching files</button>
+								<button type="button" class="btn btn-sm btn-primary" @click.prevent="doSelectAll">{{ t('f2c_select_matching_files') }}</button>
+								<button type="button" class="btn btn-sm btn-outline-secondary" @click.prevent="doDeselectAll">{{ t('f2c_deselect_matching_files') }}</button>
 							</div>
 						</div>
 					</fieldset>
 
 					<div class="f2c-title-action">
-						<span class="f2c-section-label">Append text to title</span>
+						<span class="f2c-section-label">{{ t('f2c_append_text_to_title') }}</span>
 						<div class="f2c-title-affix-fields">
 							<label class="f2c-find-replace-field">
-								<span>Prefix</span>
+								<span>{{ t('f2c_prefix') }}</span>
 								<span class="f2c-affix-control">
 									<input type="text" class="form-control" v-model="prefix_string">
-									<button type="button" class="btn btn-sm btn-outline-secondary" @click.prevent="doPrefix">Prefix</button>
+									<button type="button" class="btn btn-sm btn-outline-secondary" @click.prevent="doPrefix">{{ t('f2c_prefix') }}</button>
 								</span>
 							</label>
 							<label class="f2c-find-replace-field">
-								<span>Suffix</span>
+								<span>{{ t('f2c_suffix') }}</span>
 								<span class="f2c-affix-control">
 									<input type="text" class="form-control" v-model="suffix_string">
-									<button type="button" class="btn btn-sm btn-outline-secondary" @click.prevent="doSuffix">Suffix</button>
+									<button type="button" class="btn btn-sm btn-outline-secondary" @click.prevent="doSuffix">{{ t('f2c_suffix') }}</button>
 								</span>
 							</label>
 						</div>
 					</div>
 
 					<div class="f2c-title-action">
-						<span class="f2c-section-label">Find / replace in title</span>
+						<span class="f2c-section-label">{{ t('f2c_find_replace_title') }}</span>
 						<div class="f2c-find-replace-fields">
 							<label class="f2c-find-replace-field" for="f2c-title-find">
-								<span>Find</span>
+								<span>{{ t('f2c_find') }}</span>
 								<input id="f2c-title-find" type="text" class="form-control" v-model="title_regex_pattern">
 							</label>
 							<label class="f2c-find-replace-field" for="f2c-title-replace">
-								<span>Replace with</span>
+								<span>{{ t('f2c_replace_with') }}</span>
 								<input id="f2c-title-replace" type="text" class="form-control" v-model="title_regex_replace">
 							</label>
 						</div>
 						<div class="f2c-find-replace-actions">
 							<label class="magpie-check" for="f2c-title-regex">
 								<input id="f2c-title-regex" type="checkbox" v-model="title_use_regex">
-								<span>Use regular expression</span>
+								<span>{{ t('f2c_use_regular_expression') }}</span>
 							</label>
-							<button type="button" class="btn btn-sm btn-primary" @click.prevent="doTitleReplace">Replace</button>
+							<button type="button" class="btn btn-sm btn-primary" @click.prevent="doTitleReplace">{{ t('f2c_replace') }}</button>
 						</div>
 					</div>
 
 					<div class="f2c-populate-categories">
 						<div>
-							<strong>Populate suggested categories</strong>
-							<p class="f2c-field-hint mb-0">Fetch suggestions for the matching files and place them in the editable category fields for review.</p>
+							<strong>{{ t('f2c_populate_suggested_categories') }}</strong>
+							<p class="f2c-field-hint mb-0">{{ t('f2c_populate_categories_hint') }}</p>
 						</div>
 						<button type="button" class="btn btn-sm btn-primary" :disabled="populating_categories"
-							@click.prevent="populateCategories">{{ populating_categories ? 'Loading…' : 'Populate categories' }}</button>
+							@click.prevent="populateCategories">{{ populating_categories ? t('magpie_loading') : t('magpie_populate_categories') }}</button>
 					</div>
 					<p v-if="category_population_message" class="f2c-category-result" aria-live="polite">{{ category_population_message }}</p>
 				</div>
@@ -288,17 +288,17 @@ Magpie.Views.flickr2commons = (function () {
 									:style="{ width: transfer_running_percent + '%' }"></div>
 							</div>
 							<div v-if="transfers_running > 0" class="analysis-progress transfer-bar__activity"
-								role="progressbar" aria-label="Uploads in progress"></div>
+								role="progressbar" :aria-label="t('magpie_uploads_in_progress')"></div>
 							<small class="transfer-bar__progress-label">
-								{{ transfers_completed }} / {{ transfer_progress_total }}<span v-if="transfers_failed > 0"> ({{ transfers_failed }} failed)</span>
+								{{ transfers_completed }} / {{ transfer_progress_total }}<span v-if="transfers_failed > 0"> ({{ t('magpie_failed_count', [transfers_failed]) }})</span>
 							</small>
 						</div>
 					</div>
 					<div class="transfer-bar__actions">
 						<button v-if="currently_selected > 0 && transfers_running === 0" type="button"
-							class="btn btn-primary btn-sm" @click="transferAll">Upload selected files</button>
+							class="btn btn-primary btn-sm" @click="transferAll">{{ t('magpie_upload_selected') }}</button>
 						<button v-if="transfers_running > 0" type="button" class="btn btn-danger btn-sm"
-							:disabled="stop_transfers" @click="stopTransfers">Stop uploads</button>
+							:disabled="stop_transfers" @click="stopTransfers">{{ t('f2c_stop_uploads') }}</button>
 					</div>
 				</div>
 			</div>
@@ -377,16 +377,13 @@ Magpie.Views.flickr2commons = (function () {
 				return this.files.filter((file) => file.existing_filename_on_commons !== '').length;
 			},
 			selection_summary() {
-				return this.currently_selected + ' files are currently selected and ready to transfer; '
-					+ this.filename_exists_on_commons + ' have a filename issue.';
+				return this.t('files_currently_selected', [this.currently_selected, this.filename_exists_on_commons]);
 			},
 			deleted_summary() {
-				const count = this.filename_previously_deleted_on_commons;
-				return count + (count === 1 ? ' filename was' : ' filenames were')
-					+ ' previously deleted from Wikimedia Commons.';
+				return this.t('files_previously_deleted_count', [this.filename_previously_deleted_on_commons]);
 			},
 			hide_on_commons_label() {
-				return 'Hide ' + this.on_commons + ' files already on Wikimedia Commons';
+				return this.t('hide_files_on_commons', [this.on_commons]);
 			},
 			pd_rationale_suggestions() {
 				return PD_RATIONALE_SUGGESTIONS;
@@ -407,7 +404,7 @@ Magpie.Views.flickr2commons = (function () {
 			pd_warning_message() {
 				const count = this.generic_pd_files.length;
 				if (count < 1) return '';
-				return count + " files use Flickr's generic public-domain marker, which Wikimedia Commons does not accept on its own. Without a specific reason the files are tagged as lacking a licence and may be deleted.";
+				return this.t('f2c_generic_pd_warning', [count]);
 			},
 			skipped_messages() {
 				return Magpie.commons.skippedFileMessages({
@@ -445,11 +442,11 @@ Magpie.Views.flickr2commons = (function () {
 			loaded_context_type() {
 				if (!this.loaded_context) return '';
 				return {
-					user: 'Flickr account',
-					photoset: 'Flickr album',
-					group: 'Flickr group',
-					photo: 'Flickr photo'
-				}[this.loaded_context.type] || 'Flickr source';
+					user: this.t('magpie_loaded_context_user'),
+					photoset: this.t('magpie_loaded_context_photoset'),
+					group: this.t('magpie_loaded_context_group'),
+					photo: this.t('magpie_loaded_context_photo')
+				}[this.loaded_context.type] || this.t('magpie_loaded_context_source');
 			},
 			loaded_license_summary() {
 				const names = this.files
@@ -467,7 +464,7 @@ Magpie.Views.flickr2commons = (function () {
 				try {
 					const result = await Magpie.api.flickrKey();
 					if (result.status === 'OK' && result.data) this.apiKey = result.data;
-					else this.keyStatus = result.status || 'The Flickr API key is not configured.';
+					else this.keyStatus = this.t('magpie_flickr_key_missing');
 				} catch (error) {
 					this.keyStatus = String(error.message || error);
 				}
@@ -502,7 +499,7 @@ Magpie.Views.flickr2commons = (function () {
 				}
 				if (!this.combined_input) return;
 				if (this.is_authorized) this.doRun();
-				else this.input_error = 'Log in to start this transfer.';
+				else this.input_error = this.t('magpie_login_required');
 			},
 			readRoute() {
 				const hash = window.location.hash || '';
@@ -549,7 +546,7 @@ Magpie.Views.flickr2commons = (function () {
 			},
 			resetSearch() {
 				if (this.transfers_running > 0
-					&& !window.confirm('Return to the start form? The current load and results will be cleared.')) return;
+					&& !window.confirm(this.t('magpie_return_to_start_confirm'))) return;
 				this.load_generation++;
 				this.stop_transfers = true;
 				this.running = false;
@@ -574,7 +571,7 @@ Magpie.Views.flickr2commons = (function () {
 				this.tag_warning = '';
 				const value = (this.tag || '').trim();
 				if (value && !value.includes(',') && value.split(/\s+/).length >= 3) {
-					this.tag_warning = 'If these are multiple tags, separate them with commas.';
+					this.tag_warning = this.t('f2c_tag_separator_warning');
 				}
 			},
 			async hydrateLoadedContext(type, id) {
@@ -660,8 +657,7 @@ Magpie.Views.flickr2commons = (function () {
 				if (files.length === 0 || this.populating_categories) return;
 				const generation = this.load_generation;
 				this.populating_categories = true;
-				this.category_population_message = 'Loading suggestions for ' + files.length + ' '
-					+ (files.length === 1 ? 'file' : 'files') + '…';
+				this.category_population_message = this.t('magpie_loading_suggestions', [files.length]);
 				let updated = 0;
 				let unchanged = 0;
 				let failed = 0;
@@ -697,10 +693,10 @@ Magpie.Views.flickr2commons = (function () {
 				}
 				this.populating_categories = false;
 				const parts = [];
-				if (updated) parts.push(updated + ' ' + (updated === 1 ? 'file' : 'files') + ' populated');
-				if (unchanged) parts.push(unchanged + ' had no new suggestions');
-				if (failed) parts.push(failed + ' failed');
-				this.category_population_message = parts.join('; ') + '. Review the category fields below before uploading.';
+				if (updated) parts.push(this.t('magpie_categories_populated', [updated]));
+				if (unchanged) parts.push(this.t('magpie_no_new_suggestions_count', [unchanged]));
+				if (failed) parts.push(this.t('magpie_failed_count', [failed]));
+				this.category_population_message = this.t('magpie_categories_review', [parts.join('; ')]);
 			},
 			doPrefix() {
 				const prefix = this.prefix_string.trim();
@@ -814,7 +810,7 @@ Magpie.Views.flickr2commons = (function () {
 			async checkFlickrFilesOnCommons() {
 				const generation = this.load_generation;
 				this.checking_commons = true;
-				this.last_message = 'Checking which files are already on Wikimedia Commons';
+				this.last_message = this.t('checking_existing_on_commons');
 				try {
 					const data = { files: {}, owners: this.owners };
 					for (const nsid of Object.keys(this.owners)) data.files[nsid] = [];
@@ -984,7 +980,7 @@ Magpie.Views.flickr2commons = (function () {
 						(progress) => {
 							const percent = progress.pages
 								? Math.round(progress.page * 100 / progress.pages) : 0;
-							this.last_message = progress.so_far + ' files found so far (' + percent + '% done)';
+							this.last_message = this.t('f2c_files_found_so_far', [progress.so_far, percent]);
 						});
 					if (generation !== this.load_generation) return;
 					this.files = [];
@@ -1032,7 +1028,7 @@ Magpie.Views.flickr2commons = (function () {
 					this.running = false;
 					this.last_message = '';
 					this.form_is_visible = true;
-					this.input_error = 'Could not load the Flickr photo. Check the ID and that the Flickr API key is configured.';
+					this.input_error = this.t('magpie_flickr_photo_load_failed');
 					return;
 				}
 				this.finishFileLoad();
@@ -1154,15 +1150,15 @@ Magpie.Views.flickr2commons = (function () {
 				if (!this.auth.checked) return;
 				if (!this.auth.ok) {
 					this.form_is_visible = true;
-					this.input_error = 'Log in to start this transfer.';
+					this.input_error = this.t('magpie_login_required');
 					return;
 				}
 				if (this.has_run && this.files.length > 0) {
-					if (!window.confirm('Re-running will clear the current results. Continue?')) return;
+					if (!window.confirm(this.t('confirm_rerun'))) return;
 				}
 				const trimmed = String(this.combined_input || '').trim();
 				if (!trimmed) {
-					this.input_error = 'This field is required.';
+					this.input_error = this.t('f2c_required_field');
 					return;
 				}
 				this.validateTag();
@@ -1197,7 +1193,7 @@ Magpie.Views.flickr2commons = (function () {
 					this.running = false;
 					this.last_message = '';
 					this.form_is_visible = true;
-					this.input_error = 'Nothing to work with';
+					this.input_error = this.t('nothing2work_with');
 					return;
 				}
 				if (result.type === 'user') await this.doRunUser(result.value);

@@ -14,14 +14,14 @@ Magpie.api = {
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
 			body: body.toString()
 		});
-		if (!response.ok) throw new Error('The API failed (' + response.status + ')');
+		if (!response.ok) throw new Error(Magpie.t('magpie_api_failed', [response.status]));
 		return response.json();
 	},
 
 	async get(params) {
 		const query = new URLSearchParams(params).toString();
 		const response = await fetch('/api.php?' + query, { credentials: 'same-origin' });
-		if (!response.ok) throw new Error('The API failed (' + response.status + ')');
+		if (!response.ok) throw new Error(Magpie.t('magpie_api_failed', [response.status]));
 		return response.json();
 	},
 

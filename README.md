@@ -188,6 +188,7 @@ used.
 | `assets/app.js` | router, shell component, auth state |
 | `assets/img/magpie.jpg` | header icon and favicon |
 | `assets/js/api.js` | all backend calls |
+| `assets/js/i18n.js` | Tooltranslate language loading and `t()` |
 | `assets/js/upload.js` | sequential upload queue |
 | `assets/js/util.js` | file-name/description helpers |
 | `assets/js/commons.js` | Commons filename checks and TitleBlacklist mirror |
@@ -251,7 +252,7 @@ build.
 **Working today:** the shared upload API with one OAuth login; URL, Geograph
 and CommonsHelper transfers; Flickr photo import and the two Commons checks;
 chunked uploads; the embedded Vue front-end; the old `.php` addresses and API
-aliases.
+aliases; Tooltranslate interface languages; and `wikimisc` telemetry.
 
 **Not feature-complete yet:**
 
@@ -259,18 +260,19 @@ aliases.
   TitleBlacklist warnings, bulk selection, prefix/suffix, find/replace,
   category suggestions and the concurrent transfer queue are ported from the
   old Vue app. Legacy query parameters (`photoid`, `userid`, `photoset`,
-  `group`, `tags`, `maxpics`) are honoured. The old path-based routes
-  (`/photo/…`, `/user/…`, …), tool translation, and the `logger.php` pings are
-  not ported.
+  `group`, `tags`, `maxpics`) and the newer hash routes (`#/photo/…`,
+  `#/user/…`, `#/photoset/…`, `#/group/…`) are honoured. The old path-based
+  history routes are not.
 * **Flickr API and thumbnail access** go through `action=flickr_api` and
   `action=flickr_thumb`. This keeps `api.flickr.com` and the static image hosts
   out of the browser's CSP scope and the API key server-side.
 * **FLinfo** is called directly from the browser for Information templates and
   category suggestions. If it is unreachable, a local template is built from
   the Flickr data; category suggestions are simply unavailable.
-* **CommonsHelper interface localisation** is no longer fetched from
-  `User:Magnus_Manske/Commonshelper_interface`; the UI is English. The
-  description/license output is independent of this.
+* **CommonsHelper interface localisation** used to come from
+  `User:Magnus_Manske/Commonshelper_interface`; the unified interface now uses
+  the same Tooltranslate strings as the other views. The description/license
+  output is independent of this.
 * **CommonsHelper fixtures** would make the port easier to trust: capture a set
   of PHP inputs/outputs and compare. Until then, the unit tests cover the
   building blocks, not whole pages.
@@ -278,15 +280,20 @@ aliases.
   `project=wikisource`) is not supported; the handler defaults an empty
   language to `en`. Other projects use `Wiki::new`, so the supported set is
   the same as `wikimisc::wiki`.
-* **`{{NowCommons}}` on the source wiki** is shown as text plus an edit link;
-  the old tool could save it through the uploader's `setpagetext`. A small
-  front-end addition can restore that.
-* **Usage logging** (`magnustools/logger.php`) is not wired in. Add a
-  fire-and-forget call if the dashboard needs the numbers.
+* **`{{NowCommons}}` on the source wiki** is saved through `setpagetext` with
+  a revision timestamp, so a concurrent edit is not silently overwritten.
 * **Replica-backed size/SHA-1 checks** exist in `mediawiki_upload` behind the
   `toolforge-replicas` feature but are not used here; the current checks are
   name/duplicate based. Enable them for a "check before upload" button if the
   extra round-trip is worth it.
+
+**Interface translations:** the `magpie` tool on Tooltranslate (id 88) is the
+only source. `scripts/build_i18n.py` reads the published strings, adds the new
+interface keys defined in that script, and emits idempotent import SQL in
+`target/magpie-i18n.sql`. Import it on Toolforge, then call
+`api.php?mode=update_json&toolname=magpie`. The browser fetches the published
+snapshots from `tools-static.wmflabs.org`; nothing is bundled in the repository.
+`interface_language=…` and the `interface_language` cookie select a language.
 
 **Operational notes:**
 

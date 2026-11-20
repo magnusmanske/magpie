@@ -4,51 +4,51 @@ Magpie.Views.geograph2commons = {
 	template: `
 	<div>
 		<div class="magpie-card">
-			<h2>Geograph2Commons</h2>
-			<p class="magpie-hint">Transfer a photo from Geograph with its description and reuse terms.</p>
+			<h2>{{ t('magpie_tool_geograph2commons') }}</h2>
+			<p class="magpie-hint">{{ t('magpie_g2c_intro') }}</p>
 			<div v-if="auth.checked && !auth.ok" class="magpie-card">
-				<strong>You are not logged in.</strong>
-				<a :href="authorizeUrl">Log in with OAuth</a> to upload under your own Commons account.
+				<strong>{{ t('magpie_not_logged_in') }}</strong>
+				<a :href="authorizeUrl">{{ t('magpie_login_to_upload') }}</a>
 			</div>
 			<div class="magpie-row">
 				<div class="magpie-field">
-					<label for="g2c-server">Server</label>
+					<label for="g2c-server">{{ t('magpie_server') }}</label>
 					<select id="g2c-server" v-model="server" class="form-control">
 						<option v-for="s in servers" :key="s" :value="s">{{ s }}</option>
 					</select>
 				</div>
 				<div class="magpie-field">
-					<label for="g2c-id">Photo ID</label>
+					<label for="g2c-id">{{ t('magpie_photo_id') }}</label>
 					<input id="g2c-id" v-model="photoId" class="form-control magpie-mono" inputmode="numeric">
 				</div>
 				<div class="magpie-field">
-					<label for="g2c-name">New file name (optional)</label>
+					<label for="g2c-name">{{ t('magpie_new_filename_optional') }}</label>
 					<input id="g2c-name" v-model="newFilename" class="form-control">
 				</div>
 			</div>
 			<div class="magpie-field">
-				<label for="g2c-cats">Extra categories, one per line</label>
+				<label for="g2c-cats">{{ t('magpie_extra_categories') }}</label>
 				<textarea id="g2c-cats" v-model="categories" rows="3" class="form-control"></textarea>
 			</div>
 			<div class="magpie-actions">
-				<button class="btn btn-primary" :disabled="loading" @click="load">Load photo</button>
-				<button class="btn btn-success" :disabled="!result || uploading" @click="upload">Upload</button>
+				<button class="btn btn-primary" :disabled="loading" @click="load">{{ t('magpie_load_photo') }}</button>
+				<button class="btn btn-success" :disabled="!result || uploading" @click="upload">{{ t('magpie_upload') }}</button>
 			</div>
 			<p v-if="message" class="magpie-status magpie-error">{{ message }}</p>
 		</div>
 
 		<div class="magpie-card" v-if="result">
-			<h3>Preview</h3>
+			<h3>{{ t('magpie_preview') }}</h3>
 			<div class="magpie-field">
-				<label>File name</label>
+				<label>{{ t('magpie_file_name') }}</label>
 				<input v-model="row.newfile" class="form-control">
 			</div>
 			<div class="magpie-field">
-				<label>Description</label>
+				<label>{{ t('description') }}</label>
 				<textarea v-model="row.desc" rows="12" class="form-control magpie-mono"></textarea>
 			</div>
-			<p><a :href="row.sourceUrl" target="_blank" rel="noopener">Hi-res image</a></p>
-			<p v-if="row.page" class="magpie-ok">Uploaded: <a :href="row.page" target="_blank">{{ row.page }}</a></p>
+			<p><a :href="row.sourceUrl" target="_blank" rel="noopener">{{ t('magpie_hires_image') }}</a></p>
+			<p v-if="row.page" class="magpie-ok">{{ t('magpie_uploaded_at') }} <a :href="row.page" target="_blank">{{ row.page }}</a></p>
 			<p v-else-if="row.message" class="magpie-status" :class="statusClass(row.status)">{{ row.message }}</p>
 		</div>
 	</div>`,
@@ -86,7 +86,7 @@ Magpie.Views.geograph2commons = {
 			this.result = null;
 			const id = String(this.photoId).trim();
 			if (!/^\d+$/.test(id)) {
-				this.message = 'Please enter a numeric photo ID.';
+				this.message = this.t('magpie_numeric_photo_id');
 				return;
 			}
 			this.loading = true;
@@ -94,7 +94,7 @@ Magpie.Views.geograph2commons = {
 				const query = new URLSearchParams({ server: this.server, photo_id: id });
 				const response = await fetch('/geograph2commons/g2c.php?' + query.toString());
 				const data = await response.json();
-				if (!data.main || !data.reuse) throw new Error('Could not load photo ' + id + ' from ' + this.server);
+				if (!data.main || !data.reuse) throw new Error(this.t('magpie_could_not_load_photo', [id, this.server]));
 				this.parse(id, data);
 			} catch (error) {
 				this.message = String(error.message || error);
@@ -108,7 +108,7 @@ Magpie.Views.geograph2commons = {
 
 			const textarea = reuse.querySelector('#wikipedia textarea');
 			let description = textarea ? textarea.textContent : '';
-			if (!description.trim()) throw new Error('Could not get a description; check the photo ID.');
+			if (!description.trim()) throw new Error(this.t('magpie_no_description_check_id'));
 
 			description = description.trim() + '\n\n';
 			String(this.categories || '').split('\n').forEach((category) => {
@@ -119,7 +119,7 @@ Magpie.Views.geograph2commons = {
 
 			const titles = Array.from(reuse.querySelectorAll('h2 a'))
 				.map((a) => a.textContent.trim()).filter(Boolean);
-			if (titles.length < 2) throw new Error('Could not get a title; check the photo ID.');
+			if (titles.length < 2) throw new Error(this.t('magpie_no_title_check_id'));
 			let name = titles[1].replace(/'/g, '') + ' (geograph ' + id + ').jpg';
 			name = name.replace(/ *[\/|]/g, ',').replace(/\s+/g, ' ').replace(/:/g, '-');
 
@@ -135,7 +135,7 @@ Magpie.Views.geograph2commons = {
 			});
 			if (hires && hires.indexOf('//') === 0) hires = 'https:' + hires;
 			if (hires && hires.charAt(0) === '/' && hires.indexOf('//') !== 0) hires = 'https://' + this.server + hires;
-			if (!hires) throw new Error('Could not find the image URL.');
+			if (!hires) throw new Error(this.t('magpie_no_image_url'));
 
 			const newfile = this.newFilename.trim() || name;
 			this.newFilename = newfile;
@@ -163,7 +163,7 @@ Magpie.Views.geograph2commons = {
 				this.row.status = 'done';
 				const uploaded = result.res && result.res.upload && result.res.upload.filename;
 				this.row.page = Magpie.commonsPage(uploaded || this.row.newfile);
-				this.row.message = 'Uploaded';
+				this.row.message = this.t('magpie_uploaded');
 			} catch (error) {
 				this.row.status = 'error';
 				this.row.message = String(error.message || error);

@@ -12,45 +12,40 @@ Magpie.Views.url2commons = {
 	template: `
 	<div>
 		<div class="magpie-card">
-			<h2>Url2Commons</h2>
+			<h2>{{ t('magpie_tool_url2commons') }}</h2>
 			<div v-if="auth.checked && !auth.ok" class="magpie-card">
-				<strong>You are not logged in.</strong>
-				<a :href="authorizeUrl">Log in with OAuth</a> to upload under your own Commons account.
+				<strong>{{ t('magpie_not_logged_in') }}</strong>
+				<a :href="authorizeUrl">{{ t('magpie_login_to_upload') }}</a>
 			</div>
 			<div class="magpie-field">
-				<label for="u2c-urls">URLs</label>
+				<label for="u2c-urls">{{ t('magpie_urls') }}</label>
 				<textarea id="u2c-urls" v-model="urls" rows="6" class="form-control magpie-mono"></textarea>
-				<p class="magpie-hint">One URL per line. After the URL, an optional file name.
-					After <span class="magpie-mono">|</span>, an optional description key for
-					<span class="magpie-mono">$DESCRIPTOR$</span>. Use
-					<span class="magpie-mono">$NL$</span> for a newline and
-					<span class="magpie-mono">$US$</span> for an underscore.</p>
+				<p class="magpie-hint">{{ t('magpie_urls_hint') }}</p>
 			</div>
 			<div class="magpie-field">
-				<label for="u2c-desc">Description template</label>
+				<label for="u2c-desc">{{ t('magpie_description_template') }}</label>
 				<textarea id="u2c-desc" v-model="description" rows="9" class="form-control magpie-mono"></textarea>
-				<p class="magpie-hint"><span class="magpie-mono">$DESCRIPTOR$</span> is replaced per file;
-					<span class="magpie-mono">$URL$</span> with the source URL.</p>
+				<p class="magpie-hint">{{ t('magpie_desc_hint') }}</p>
 			</div>
 			<div class="magpie-row">
-				<button class="btn btn-primary" :disabled="working" @click="simulate(true)">Simulate</button>
-				<button class="btn btn-outline-secondary" :disabled="working" @click="previewDescription">Preview description</button>
-				<button v-if="canUpload" class="btn btn-success" @click="simulate(false)">Upload</button>
+				<button class="btn btn-primary" :disabled="working" @click="simulate(true)">{{ t('magpie_simulate') }}</button>
+				<button class="btn btn-outline-secondary" :disabled="working" @click="previewDescription">{{ t('magpie_preview_description') }}</button>
+				<button v-if="canUpload" class="btn btn-success" @click="simulate(false)">{{ t('magpie_upload') }}</button>
 			</div>
 			<p v-if="message" class="magpie-status magpie-error">{{ message }}</p>
 			<p v-if="summary" class="magpie-status" :class="summaryClass">{{ summary }}</p>
 		</div>
 
 		<div class="magpie-card" v-if="previewHtml">
-			<h3>Description preview</h3>
+			<h3>{{ t('magpie_description_preview') }}</h3>
 			<p class="magpie-hint">{{ previewMessage }}</p>
 			<div class="url2c-preview" v-html="previewHtml"></div>
 		</div>
 
 		<div class="magpie-card" v-if="items.length">
-			<h3>Files</h3>
+			<h3>{{ t('magpie_files') }}</h3>
 			<table class="magpie-table">
-				<thead><tr><th>File</th><th>Source</th><th>Status</th></tr></thead>
+				<thead><tr><th>{{ t('magpie_file_name') }}</th><th>{{ t('magpie_source') }}</th><th>{{ t('magpie_status') }}</th></tr></thead>
 				<tbody>
 					<tr v-for="item in items" :key="item.id">
 						<td>
@@ -59,7 +54,7 @@ Magpie.Views.url2commons = {
 						</td>
 						<td class="url">{{ item.sourceUrl }}</td>
 						<td class="magpie-status" :class="statusClass(item)">
-							<span v-if="item.page"><a :href="item.page" target="_blank" rel="noopener">Uploaded</a></span>
+							<span v-if="item.page"><a :href="item.page" target="_blank" rel="noopener">{{ t('magpie_uploaded') }}</a></span>
 							<span v-else>{{ item.message || statusLabel(item) }}</span>
 						</td>
 					</tr>
@@ -97,13 +92,15 @@ Magpie.Views.url2commons = {
 		summary() {
 			if (this.working || !this.items.length) return '';
 			if (this.badCount > 0) {
-				const what = this.mode === 'simulate' ? 'simulation' : 'upload';
-				return this.badCount + ' ' + what + (this.badCount === 1 ? '' : 's') + ' failed; see the details above.';
+				const key = this.mode === 'simulate'
+					? (this.badCount === 1 ? 'magpie_simulation_failed' : 'magpie_simulations_failed')
+					: (this.badCount === 1 ? 'magpie_upload_failed_count' : 'magpie_uploads_failed');
+				return this.t(key, [this.badCount]);
 			}
 			if (this.mode === 'upload') {
-				return this.items.every((item) => item.status === 'done') ? 'All files uploaded!' : '';
+				return this.items.every((item) => item.status === 'done') ? this.t('magpie_all_uploaded') : '';
 			}
-			return 'All simulations successful, you can upload if you are logged in!';
+			return this.t('magpie_all_simulations_ok');
 		},
 		summaryClass() {
 			return this.badCount > 0 ? 'magpie-error' : 'magpie-ok';
@@ -113,13 +110,13 @@ Magpie.Views.url2commons = {
 		await Promise.all([Magpie.refreshAuth(), this.loadAllowedFileTypes()]);
 		const params = this.getUrlVars();
 		if (params.oauth_error) {
-			this.message = 'Login failed. The connection to Wikimedia was interrupted; please log in again.';
+			this.message = this.t('magpie_login_failed');
 		}
 		if (params.urls !== undefined) this.urls = params.urls;
 		if (params.desc !== undefined) this.description = params.desc;
 		if (params.run !== undefined) {
 			if (!this.auth.ok) {
-				this.message = 'Log in before starting an upload.';
+				this.message = this.t('magpie_login_required');
 				await this.simulate(true);
 			} else {
 				await this.simulate(false);
@@ -135,9 +132,9 @@ Magpie.Views.url2commons = {
 			return 'uploading';
 		},
 		statusLabel(item) {
-			if (item.status === 'checking') return 'Checking...';
-			if (item.status === 'uploading') return 'Uploading...';
-			if (item.status === 'ok') return 'Filename available.';
+			if (item.status === 'checking') return this.t('magpie_checking');
+			if (item.status === 'uploading') return this.t('magpie_uploading');
+			if (item.status === 'ok') return this.t('magpie_filename_available');
 			return '';
 		},
 		/* PHP's getUrlVars(): the fragment wins, and "_" means a space. */
@@ -206,7 +203,7 @@ Magpie.Views.url2commons = {
 			this.badCount = 0;
 			this.simulated = false;
 			if (!this.items.length) {
-				this.message = 'Please enter at least one URL.';
+				this.message = this.t('magpie_enter_url');
 				return;
 			}
 
@@ -228,7 +225,7 @@ Magpie.Views.url2commons = {
 		async checkItem(item, seenUrls, seenNames) {
 			try {
 				if (seenUrls.has(item.sourceUrl)) {
-					return this.fail(item, 'You are already trying to upload a file with this URL!');
+					return this.fail(item, this.t('magpie_duplicate_url'));
 				}
 				seenUrls.add(item.sourceUrl);
 
@@ -240,10 +237,10 @@ Magpie.Views.url2commons = {
 
 				const type = item.newname.split('.').pop().toLowerCase().trim();
 				if (!this.allowedTypes.includes(type)) {
-					return this.fail(item, '"' + type + '" is not a supported file name!');
+					return this.fail(item, this.t('magpie_unsupported_type', [type]));
 				}
 				if (seenNames.has(item.newname)) {
-					return this.fail(item, 'You are already trying to upload a file with this filename!');
+					return this.fail(item, this.t('magpie_duplicate_filename'));
 				}
 				seenNames.add(item.newname);
 
@@ -254,17 +251,16 @@ Magpie.Views.url2commons = {
 
 				const answer = await Magpie.api.flickrExisting([item.newname]);
 				if (answer.status !== 'OK') {
-					return this.fail(item, 'Could not check the filename on Commons; please try again.');
+					return this.fail(item, this.t('magpie_could_not_check_filename'));
 				}
 				const status = ((answer.data || {}).files || {})[Magpie.fileName(item.newname)];
 				if (status === 1) {
-					return this.fail(item, 'A file of this name already exists on Commons: ' + item.newname
-						+ ' — please give this upload a different name.');
+					return this.fail(item, this.t('magpie_filename_exists_on_commons', [item.newname]));
 				}
 				item.status = 'ok';
-				item.message = 'Filename available.';
+				item.message = this.t('magpie_filename_available');
 			} catch (error) {
-				this.fail(item, 'Could not check this file: ' + String(error.message || error));
+				this.fail(item, this.t('magpie_could_not_check_file', [String(error.message || error)]));
 			}
 		},
 		fail(item, message) {
@@ -277,7 +273,7 @@ Magpie.Views.url2commons = {
 			this.simulated = false;
 			for (const item of this.items) {
 				item.status = 'uploading';
-				item.message = 'Uploading file to Commons...';
+				item.message = this.t('magpie_uploading_file');
 				try {
 					const result = await Magpie.api.uploadFromUrl({
 						url: item.sourceUrl,
@@ -295,11 +291,11 @@ Magpie.Views.url2commons = {
 						const uploaded = result.res && result.res.upload && result.res.upload.filename;
 						item.status = 'done';
 						item.page = Magpie.commonsPage(uploaded || item.newname);
-						item.message = 'SUCCESS!';
+						item.message = this.t('magpie_upload_success');
 					}
 				} catch (error) {
 					item.status = 'error';
-					item.message = 'ERROR: the upload request itself failed (' + String(error.message || error) + ')';
+					item.message = this.t('magpie_upload_request_failed', [String(error.message || error)]);
 					this.badCount++;
 				}
 				await Magpie.sleep(300);
@@ -314,8 +310,8 @@ Magpie.Views.url2commons = {
 				break;
 			}
 			this.previewMessage = first
-				? 'Placeholders filled in from the first URL line.'
-				: 'No URL entered, so $DESCRIPTOR$ and $URL$ are empty.';
+				? this.t('magpie_preview_first_url')
+				: this.t('magpie_preview_no_url');
 
 			const text = Magpie.fillDescription(this.description, {
 				url: first ? first.sourceUrl : '',
@@ -340,12 +336,12 @@ Magpie.Views.url2commons = {
 				const data = await response.json();
 				const html = ((data.parse || {}).text || {})['*'];
 				if (html === undefined) {
-					this.previewMessage = ((data.error || {}).info) || 'Commons could not render this description.';
+					this.previewMessage = ((data.error || {}).info) || this.t('magpie_preview_could_not_render');
 					return;
 				}
 				this.previewHtml = this.sanitizePreview(html);
 			} catch (error) {
-				this.previewMessage = 'Could not reach the Commons API to render the preview.';
+				this.previewMessage = this.t('magpie_preview_unreachable');
 			}
 		},
 		/* Commons sanitises parsed wikitext, but never trust HTML from a

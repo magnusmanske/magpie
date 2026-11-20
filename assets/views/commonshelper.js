@@ -4,41 +4,40 @@ Magpie.Views.commonshelper = {
 	template: `
 	<div>
 		<div class="magpie-card">
-			<h2>CommonsHelper</h2>
-			<p class="magpie-hint">Read a file from another wiki and build the Commons description page.
-				The original page's description, license, and upload history are translated where possible.</p>
+			<h2>{{ t('magpie_tool_commonshelper') }}</h2>
+			<p class="magpie-hint">{{ t('magpie_ch_intro') }}</p>
 			<div v-if="auth.checked && !auth.ok" class="magpie-card">
-				<strong>You are not logged in.</strong>
-				<a :href="authorizeUrl">Log in with OAuth</a> for direct uploads.
+				<strong>{{ t('magpie_not_logged_in') }}</strong>
+				<a :href="authorizeUrl">{{ t('magpie_login_to_upload') }}</a>
 			</div>
 			<div class="magpie-row">
 				<div class="magpie-field">
-					<label>Language</label>
+					<label>{{ t('magpie_language') }}</label>
 					<input v-model="language" class="form-control magpie-mono" size="6">
 				</div>
 				<div class="magpie-field">
-					<label>Project</label>
+					<label>{{ t('magpie_project') }}</label>
 					<input v-model="project" class="form-control magpie-mono" size="10">
 				</div>
 				<div class="magpie-field">
-					<label>File name on that wiki</label>
-					<input v-model="image" class="form-control" placeholder="Example.jpg">
+					<label>{{ t('magpie_file_on_wiki') }}</label>
+					<input v-model="image" class="form-control" :placeholder="t('magpie_file_name')">
 				</div>
 				<div class="magpie-field">
-					<label>New name on Commons</label>
+					<label>{{ t('magpie_new_name') }}</label>
 					<input v-model="newname" class="form-control" :placeholder="image">
 				</div>
 			</div>
 			<div class="magpie-row">
-				<label class="magpie-check"><input type="checkbox" v-model="removeCategories"> Remove source categories</label>
-				<label class="magpie-check"><input type="checkbox" v-model="ignorewarnings"> Ignore warnings</label>
-				<label class="magpie-check"><input type="checkbox" v-model="directUpload"> Direct upload</label>
+				<label class="magpie-check"><input type="checkbox" v-model="removeCategories"> {{ t('magpie_remove_source_categories') }}</label>
+				<label class="magpie-check"><input type="checkbox" v-model="ignorewarnings"> {{ t('magpie_ignore_warnings') }}</label>
+				<label class="magpie-check"><input type="checkbox" v-model="directUpload"> {{ t('magpie_direct_upload') }}</label>
 			</div>
 			<div class="magpie-row">
-				<button class="btn btn-primary" :disabled="loading" @click="translate">Get text</button>
+				<button class="btn btn-primary" :disabled="loading" @click="translate">{{ t('magpie_get_text') }}</button>
 				<button v-if="directUpload" class="btn btn-success"
-					:disabled="!text || !isGood || uploading || loading" @click="upload">Upload to Commons</button>
-				<span v-else class="magpie-hint">Use the manual upload button below.</span>
+					:disabled="!text || !isGood || uploading || loading" @click="upload">{{ t('magpie_upload_to_commons') }}</button>
+				<span v-else class="magpie-hint">{{ t('magpie_use_manual_upload') }}</span>
 			</div>
 			<p v-if="message" class="magpie-status magpie-error">{{ message }}</p>
 			<p v-if="warnings.length" class="magpie-status magpie-error">
@@ -47,34 +46,34 @@ Magpie.Views.commonshelper = {
 		</div>
 
 		<div class="magpie-card" v-if="text">
-			<h3>Description</h3>
+			<h3>{{ t('description') }}</h3>
 			<p class="magpie-hint">
-				<span v-if="isGood" class="magpie-ok">A free license was recognised.</span>
-				<span v-else class="magpie-error">No free license was recognised. Check the text before uploading.</span>
+				<span v-if="isGood" class="magpie-ok">{{ t('magpie_free_license_recognised') }}</span>
+				<span v-else class="magpie-error">{{ t('magpie_no_free_license') }}</span>
 			</p>
 			<textarea v-model="text" rows="20" class="form-control magpie-mono"></textarea>
 			<div class="magpie-actions">
-				<a class="btn btn-outline-secondary" :href="sourceUrl" target="_blank" rel="noopener">Source file</a>
+				<a class="btn btn-outline-secondary" :href="sourceUrl" target="_blank" rel="noopener">{{ t('magpie_source_file') }}</a>
 				<form :action="commonsUploadUrl" method="post" enctype="multipart/form-data"
 					target="_blank" rel="noopener" class="d-inline">
 					<input type="hidden" name="wpUploadDescription" :value="text">
-					<button type="submit" class="btn btn-outline-secondary">Manual upload</button>
+					<button type="submit" class="btn btn-outline-secondary">{{ t('magpie_manual_upload') }}</button>
 				</form>
-				<button class="btn btn-outline-secondary" @click="copyText">Copy text</button>
+				<button class="btn btn-outline-secondary" @click="copyText">{{ t('magpie_copy_text') }}</button>
 			</div>
-			<p v-if="page" class="magpie-ok">Uploaded: <a :href="page" target="_blank">{{ page }}</a></p>
+			<p v-if="page" class="magpie-ok">{{ t('magpie_uploaded_at') }} <a :href="page" target="_blank">{{ page }}</a></p>
 			<p v-if="uploadMessage" class="magpie-status" :class="page ? 'good' : 'bad'">{{ uploadMessage }}</p>
 		</div>
 
 		<div class="magpie-card" v-if="page">
-			<h3>Now that it is on Commons</h3>
-			<p>Add this to the original file page:</p>
+			<h3>{{ t('magpie_nowcommons_heading') }}</h3>
+			<p>{{ t('magpie_add_to_original') }}</p>
 			<textarea readonly rows="2" class="form-control magpie-mono">{{ nowCommons }}</textarea>
 			<p class="magpie-actions">
 				<button class="btn btn-primary" :disabled="nowCommonsBusy || !auth.ok" @click="applyNowCommons">
-					Add {{ nowCommonsLabel }}</button>
-				<a class="btn btn-outline-secondary" :href="sourceEditUrl" target="_blank" rel="noopener">Edit original page</a>
-				<a class="btn btn-outline-danger" :href="deleteUrl" target="_blank" rel="noopener">Delete original file</a>
+					{{ t('magpie_add_nowcommons') }}</button>
+				<a class="btn btn-outline-secondary" :href="sourceEditUrl" target="_blank" rel="noopener">{{ t('magpie_edit_original') }}</a>
+				<a class="btn btn-outline-danger" :href="deleteUrl" target="_blank" rel="noopener">{{ t('magpie_delete_original') }}</a>
 			</p>
 			<p v-if="nowCommonsMessage" class="magpie-status" :class="nowCommonsError ? 'bad' : 'good'">{{ nowCommonsMessage }}</p>
 		</div>
@@ -137,9 +136,6 @@ Magpie.Views.commonshelper = {
 			if (this.bareImage === this.effectiveName) return '{{' + template + '}}';
 			return '{{' + template + '|' + prefix + this.effectiveName + '}}';
 		},
-		nowCommonsLabel() {
-			return '{{NowCommons}}';
-		},
 		deleteUrl() {
 			const title = encodeURIComponent('File:' + this.bareImage.replace(/ /g, '_'));
 			const reason = encodeURIComponent('NowCommons [[:commons:File:' + this.effectiveName + ']]');
@@ -155,13 +151,13 @@ Magpie.Views.commonshelper = {
 		const translated = await this.translate();
 		if (!params.has('doit') || !this.autoDirect) return;
 		if (!this.auth.ok) {
-			this.uploadMessage = 'Log in before starting a direct upload.';
+			this.uploadMessage = this.t('magpie_login_before_direct');
 		} else if (!this.isGood) {
-			this.uploadMessage = 'No free license was recognised; not uploading.';
+			this.uploadMessage = this.t('magpie_no_free_license_not_uploading');
 		} else if (translated && (!this.nameCollision || this.ignorewarnings)) {
 			await this.upload();
 		} else if (translated && this.nameCollision) {
-			this.uploadMessage = 'The file name was changed because it already exists; review it and upload.';
+			this.uploadMessage = this.t('magpie_name_changed_review');
 		}
 	},
 	methods: {
@@ -190,7 +186,7 @@ Magpie.Views.commonshelper = {
 			this.nameCollision = false;
 			this.renamedFrom = '';
 			if (!this.bareImage) {
-				this.message = 'Please name the file on the source wiki.';
+				this.message = this.t('magpie_enter_file_name');
 				return false;
 			}
 			this.loading = true;
@@ -232,14 +228,13 @@ Magpie.Views.commonshelper = {
 						this.newname = candidate;
 						this.renamedFrom = wanted;
 						this.nameCollision = true;
-						this.warnings.unshift('"' + wanted + '" already exists on Commons; the name was changed to "'
-							+ candidate + '". Check the name before uploading.');
+						this.warnings.unshift(this.t('magpie_name_changed', [wanted, candidate]));
 					}
 					return;
 				}
 				candidate = this.numberedName(wanted, count);
 			}
-			throw new Error('Could not find a free file name on Commons for "' + wanted + '".');
+			throw new Error(this.t('magpie_no_free_name', [wanted]));
 		},
 		numberedName(name, count) {
 			const dot = name.lastIndexOf('.');
@@ -249,7 +244,7 @@ Magpie.Views.commonshelper = {
 		async commonsExists(name) {
 			const answer = await Magpie.api.flickrExisting([name]);
 			if (!answer || answer.status !== 'OK') {
-				throw new Error('Could not check the file name on Commons; please try again.');
+				throw new Error(this.t('magpie_could_not_check_filename'));
 			}
 			const status = ((answer.data || {}).files || {})[Magpie.fileName(name)];
 			return status === 1;
@@ -259,11 +254,11 @@ Magpie.Views.commonshelper = {
 			this.page = '';
 			if (!this.text.trim()) return;
 			if (!this.isGood) {
-				this.uploadMessage = 'No free license was recognised; not uploading.';
+				this.uploadMessage = this.t('magpie_no_free_license_not_uploading');
 				return;
 			}
 			if (!this.sourceUrl) {
-				this.uploadMessage = 'The source URL is unknown; load the description first.';
+				this.uploadMessage = this.t('magpie_source_url_unknown');
 				return;
 			}
 			this.uploading = true;
@@ -285,7 +280,7 @@ Magpie.Views.commonshelper = {
 				if (result.error && result.error !== 'OK') throw new Error(Magpie.uploadFailure(result));
 				const uploaded = result.res && result.res.upload && result.res.upload.filename;
 				this.page = Magpie.commonsPage(uploaded || this.effectiveName);
-				this.uploadMessage = 'Transfer successful!';
+				this.uploadMessage = this.t('magpie_upload_success');
 			} catch (error) {
 				this.uploadMessage = String(error.message || error);
 			} finally {
@@ -295,7 +290,7 @@ Magpie.Views.commonshelper = {
 		async applyNowCommons() {
 			if (this.nowCommonsBusy) return;
 			const title = 'File:' + this.bareImage.replace(/ /g, '_');
-			if (!window.confirm('Add ' + this.nowCommons + ' to ' + title + '?')) return;
+			if (!window.confirm(this.t('magpie_nowcommons_confirm', [this.nowCommons, title]))) return;
 			this.nowCommonsBusy = true;
 			this.nowCommonsMessage = '';
 			this.nowCommonsError = false;
@@ -321,14 +316,14 @@ Magpie.Views.commonshelper = {
 				const content = slot && (slot.content !== undefined ? slot.content : slot['*']);
 				const text = typeof content === 'string' ? content : '';
 				if (text.indexOf(this.nowCommons) !== -1) {
-					this.nowCommonsMessage = 'The page already contains the template.';
+					this.nowCommonsMessage = this.t('magpie_nowcommons_already');
 					return;
 				}
 				const basetimestamp = (revision && revision.timestamp) || '';
 				const answer = await Magpie.api.setPageText(
 					title, this.nowCommons + '\n' + text, this.site, 'Now commons', basetimestamp);
 				if (answer.error && answer.error !== 'OK') throw new Error(answer.error);
-				this.nowCommonsMessage = 'The template was added to the original page.';
+				this.nowCommonsMessage = this.t('magpie_nowcommons_added');
 			} catch (error) {
 				this.nowCommonsError = true;
 				this.nowCommonsMessage = String(error.message || error);
@@ -346,9 +341,9 @@ Magpie.Views.commonshelper = {
 		async copyText() {
 			try {
 				await navigator.clipboard.writeText(this.text);
-				this.uploadMessage = 'Text copied.';
+				this.uploadMessage = this.t('magpie_text_copied');
 			} catch (error) {
-				this.uploadMessage = 'Could not copy; select the text and copy it manually.';
+				this.uploadMessage = this.t('magpie_copy_failed');
 			}
 		}
 	}

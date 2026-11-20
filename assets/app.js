@@ -4,11 +4,18 @@ window.Magpie = window.Magpie || {};
 
 Magpie.authState = Vue.observable({ checked: false, ok: false, error: '' });
 
+/* Every component gets t(key[, params]) from the Tooltranslate snapshots. */
+Vue.mixin({
+	methods: {
+		t(key, params) { return Magpie.t(key, params); }
+	}
+});
+
 Magpie.refreshAuth = async function () {
 	try {
 		const result = await Magpie.api.checkAuth();
 		Magpie.authState.ok = !result.error || result.error === 'OK';
-		Magpie.authState.error = Magpie.authState.ok ? '' : (result.error || 'Not logged in');
+		Magpie.authState.error = Magpie.authState.ok ? '' : (result.error || Magpie.t('magpie_not_logged_in'));
 	} catch (error) {
 		Magpie.authState.ok = false;
 		Magpie.authState.error = String(error.message || error);
@@ -23,28 +30,35 @@ Vue.component('magpie-shell', {
 		<header class="magpie-header">
 			<router-link to="/" class="magpie-brand"><img class="magpie-icon" src="/assets/img/magpie.jpg" width="128" height="128" alt="" title="Eurasian magpie by Alexis Lours, CC BY 4.0"> magpie</router-link>
 			<nav class="magpie-nav">
-				<router-link to="/flickr2commons/">Flickr2Commons</router-link>
-				<router-link to="/url2commons/">Url2Commons</router-link>
-				<router-link to="/geograph2commons/">Geograph2Commons</router-link>
-				<router-link to="/commonshelper/">CommonsHelper</router-link>
+				<router-link to="/flickr2commons/">{{ t('magpie_tool_flickr2commons') }}</router-link>
+				<router-link to="/url2commons/">{{ t('magpie_tool_url2commons') }}</router-link>
+				<router-link to="/geograph2commons/">{{ t('magpie_tool_geograph2commons') }}</router-link>
+				<router-link to="/commonshelper/">{{ t('magpie_tool_commonshelper') }}</router-link>
 			</nav>
+			<label class="magpie-language">
+				<span>{{ t('magpie_language') }}</span>
+				<select :value="i18n.language" @change="changeLanguage">
+					<option v-for="code in i18n.available" :key="code" :value="code">{{ languageName(code) }}</option>
+				</select>
+			</label>
 			<div class="magpie-auth">
-				<span v-if="auth.checked && auth.ok" class="magpie-ok">Logged in</span>
+				<span v-if="auth.checked && auth.ok" class="magpie-ok">{{ t('magpie_logged_in') }}</span>
 				<template v-else-if="auth.checked">
-					<a :href="loginUrl" @click="rememberRouteForLogin">Log in with OAuth</a>
+					<a :href="loginUrl" @click="rememberRouteForLogin">{{ t('magpie_log_in_oauth') }}</a>
 					<span v-if="auth.error" class="magpie-hint"> ({{ auth.error }})</span>
 				</template>
-				<a v-if="auth.ok" :href="logoutUrl">Log out</a>
+				<a v-if="auth.ok" :href="logoutUrl">{{ t('f2c_log_out') }}</a>
 			</div>
 		</header>
 		<router-view></router-view>
 		<footer class="magpie-hint" style="margin-top:2rem">
-			Files go to Wikimedia Commons. Only upload media whose license allows reuse.
+			{{ t('magpie_footer') }}
 		</footer>
 	</div>`,
 	data() {
 		return {
 			auth: Magpie.authState,
+			i18n: Magpie.i18n.state,
 			loginUrl: Magpie.api.authorizeUrl(),
 			logoutUrl: Magpie.api.logoutUrl()
 		};
@@ -53,6 +67,12 @@ Vue.component('magpie-shell', {
 		Magpie.refreshAuth();
 	},
 	methods: {
+		languageName(code) {
+			return Magpie.i18n.name(code);
+		},
+		changeLanguage(event) {
+			Magpie.i18n.setLanguage(event.target.value);
+		},
 		/* OAuth returns to `/`; keep the tool page and its query for then. */
 		rememberRouteForLogin() {
 			try {
@@ -88,4 +108,11 @@ const routes = [
 
 const router = new VueRouter({ mode: 'history', routes: routes });
 
-new Vue({ router: router }).$mount('#app');
+(async function boot() {
+	try {
+		await Magpie.i18n.init();
+	} catch (error) {
+		/* The bundled English fallback is already enough to render. */
+	}
+	new Vue({ router: router }).$mount('#app');
+})();

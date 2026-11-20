@@ -67,9 +67,9 @@ Magpie.Components.flickrFile = {
 		},
 		status_label() {
 			switch (this.file.f2c_status) {
-				case 'TRANSFER': return 'Transferring…';
-				case 'DONE': return 'Done';
-				case 'ERROR': return 'Error';
+				case 'TRANSFER': return Magpie.t('status_transferring');
+				case 'DONE': return Magpie.t('status_done');
+				case 'ERROR': return Magpie.t('status_error');
 				default: return '';
 			}
 		}
@@ -149,10 +149,10 @@ Magpie.Components.flickrFile = {
 				this.file.user_categories = categories.join('\n');
 				this.file.auto_categories = false;
 				this.category_message = added
-					? added + ' ' + (added === 1 ? 'suggestion' : 'suggestions') + ' added for review.'
-					: (suggestionsFailed ? 'Could not load category suggestions.' : 'No new suggestions found.');
+					? Magpie.t(added === 1 ? 'magpie_suggestion_added' : 'magpie_suggestions_added', [added])
+					: (suggestionsFailed ? Magpie.t('magpie_could_not_load_suggestions') : Magpie.t('magpie_no_new_suggestions'));
 			} catch (error) {
-				this.category_message = 'Could not load category suggestions.';
+				this.category_message = Magpie.t('magpie_could_not_load_suggestions');
 			} finally {
 				this.category_loading = false;
 			}
@@ -185,7 +185,7 @@ Magpie.Components.flickrFile = {
 		<div class="flickr-file__select">
 			<input v-if="file.existing_filename_on_commons === '' || file.f2c_status === 'DONE'"
 				type="checkbox" v-model="file.is_checked" :id="'file_cb_' + file.id"
-				:disabled="!is_eligible" :title="is_eligible ? '' : 'This file cannot be uploaded as it is'">
+				:disabled="!is_eligible" :title="is_eligible ? '' : t('magpie_cannot_upload')">
 		</div>
 
 		<div class="flickr-file__thumb">
@@ -200,7 +200,7 @@ Magpie.Components.flickrFile = {
 		<div class="flickr-file__body">
 			<div v-if="file.existing_filename_on_commons !== ''" class="file_on_commons">
 				<div>
-					This file exists on Wikimedia Commons as
+					{{ t('f2c_file_exists_on_wikimedia_commons') }}
 					<a target="_blank" rel="noopener" :href="commonsPage(file.existing_filename_on_commons)">
 						{{ file.existing_filename_on_commons }}
 					</a>
@@ -215,12 +215,12 @@ Magpie.Components.flickrFile = {
 			</div>
 
 			<div v-else class="flickr-file__form">
-				<label class="f2c-file-field-label" :for="'filename_' + file.id">Filename</label>
+				<label class="f2c-file-field-label" :for="'filename_' + file.id">{{ t('f2c_filename') }}</label>
 				<input :id="'filename_' + file.id" type="text" class="form-control magpie-mono"
 					v-model="file.new_title" @blur="cleanFilename" :disabled="is_locked">
 
 				<div v-if="file.filename_status === 'checking'" class="analysis-progress f2c-filename-checking"
-					role="progressbar" aria-label="Checking filename"></div>
+					role="progressbar" :aria-label="Magpie.t('magpie_checking_filename')"></div>
 
 				<div v-if="['exists', 'deleted', 'simple', 'blacklisted'].includes(file.filename_status)"
 					class="f2c-filename-notice" :class="'f2c-filename-notice--' + file.filename_status">
@@ -228,36 +228,36 @@ Magpie.Components.flickrFile = {
 						<path d="M19 19H1v-1.8L9.444 1h1.112L19 17.2zM9 15v2h2v-2zm0-8v6h2V7z"/>
 					</svg>
 					<div v-if="file.filename_status === 'exists'" class="f2c-filename-notice__content">
-						<strong>Filename already in use</strong>
-						<p>A file with this filename already exists on Wikimedia Commons. Choose a different filename before uploading.</p>
-						<a target="_blank" rel="noopener" :href="commonsPage(file.new_title)">View existing file</a>
+						<strong>{{ t('f2c_filename_exists_title') }}</strong>
+						<p>{{ t('f2c_filename_exists_explanation') }}</p>
+						<a target="_blank" rel="noopener" :href="commonsPage(file.new_title)">{{ t('f2c_view_existing_file') }}</a>
 					</div>
 					<div v-else-if="file.filename_status === 'deleted'" class="f2c-filename-notice__content">
-						<strong>Filename was previously deleted</strong>
-						<p>A file with this filename was deleted from Wikimedia Commons. Review the deletion log before reusing it.</p>
+						<strong>{{ t('f2c_filename_deleted_title') }}</strong>
+						<p>{{ t('f2c_filename_deleted_explanation') }}</p>
 						<a target="_blank" rel="noopener"
 							:href="'https://commons.wikimedia.org/w/index.php?title=Special:Log&page=File:'
-								+ encodeURIComponent(file.new_title) + '&type=delete'">View deletion log</a>
+								+ encodeURIComponent(file.new_title) + '&type=delete'">{{ t('f2c_view_deletion_log') }}</a>
 					</div>
 					<div v-else class="f2c-filename-notice__content">
-						<strong>Filename is too generic</strong>
-						<p>Add a clear, descriptive title so the file can be identified on Wikimedia Commons.</p>
+						<strong>{{ t('f2c_filename_simple_title') }}</strong>
+						<p>{{ t('f2c_filename_simple_explanation') }}</p>
 					</div>
 				</div>
 
-				<label class="f2c-file-field-label" :for="'description_' + file.id">Description</label>
+				<label class="f2c-file-field-label" :for="'description_' + file.id">{{ t('description') }}</label>
 				<textarea :id="'description_' + file.id" class="form-control" rows="5"
 					v-model="file.new_description" :disabled="is_locked"
-					title="Enter a description for this file."></textarea>
+					:title="t('description_tt')"></textarea>
 
 				<div class="flickr-file__source-desc" :class="{ 'flickr-file__source-desc--active': uses_flickr_description }">
-					<strong class="flickr-file__source-label">Flickr Description</strong>
+					<strong class="flickr-file__source-label">{{ t('magpie_flickr_description') }}</strong>
 					<p class="small mb-0">{{ flickr_description || '—' }}</p>
 				</div>
 
 				<div v-if="tag_list.length" class="flickr-file__tags">
-					<strong class="flickr-file__source-label">Flickr tags</strong>
-					<small class="f2c-field-hint">Select tags to append them, comma-separated, to the description.</small>
+					<strong class="flickr-file__source-label">{{ t('f2c_flickr_tags') }}</strong>
+					<small class="f2c-field-hint">{{ t('f2c_tag_add_description_hint') }}</small>
 					<div class="flickr-file__tag-list">
 						<button v-for="tag in tag_list" :key="tag" type="button" class="flickr-file__tag-button"
 							:class="{ 'flickr-file__tag-button--selected': isTagSelected(tag) }"
@@ -266,26 +266,26 @@ Magpie.Components.flickrFile = {
 					</div>
 				</div>
 
-				<label class="f2c-file-field-label" :for="'categories_' + file.id">Categories</label>
-				<p class="f2c-field-hint">Enter one category per line, without the Category: prefix or square brackets.</p>
+				<label class="f2c-file-field-label" :for="'categories_' + file.id">{{ t('categories') }}</label>
+				<p class="f2c-field-hint">{{ t('f2c_categories_format_hint') }}</p>
 				<textarea :id="'categories_' + file.id" class="form-control" rows="3"
 					v-model="file.user_categories" :disabled="is_locked"
-					title="Enter categories for this file."></textarea>
+					:title="t('categories_tt')"></textarea>
 				<div class="f2c-file-category-actions">
 					<button type="button" class="btn btn-sm btn-outline-primary"
 						:disabled="category_loading || is_locked" @click.prevent="populateCategories">
-						{{ category_loading ? 'Loading…' : 'Populate' }}
+						{{ category_loading ? t('magpie_loading') : t('magpie_populate') }}
 					</button>
 				</div>
 				<small v-if="category_message" class="f2c-file-field-message" aria-live="polite">{{ category_message }}</small>
 
 				<div v-if="file.error_message" class="f2c-upload-error mt-2" role="alert">
 					<span class="f2c-upload-error__content">
-						<strong>Upload failed</strong>
+						<strong>{{ t('f2c_upload_failed') }}</strong>
 						<span>{{ file.error_message }}</span>
 					</span>
 					<button v-if="file.f2c_status === 'ERROR'" type="button" class="btn btn-sm btn-outline-danger"
-						@click.prevent="retry" title="Retry">Retry</button>
+						@click.prevent="retry" :title="t('magpie_retry')">{{ t('magpie_retry') }}</button>
 				</div>
 			</div>
 		</div>
