@@ -72,7 +72,7 @@ pub fn router(state: Arc<AppState>) -> Router {
             "strict-origin-when-cross-origin",
         ));
     let router = wikimisc::server::timeout(router, REQUEST_TIMEOUT, StatusCode::GATEWAY_TIMEOUT);
-    wikimisc::server::standard_layers(router)
+    wikimisc::server::request_metrics(wikimisc::server::standard_layers(router), &[HEALTH_PATH])
 }
 
 async fn health() -> impl axum::response::IntoResponse {

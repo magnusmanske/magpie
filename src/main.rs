@@ -45,6 +45,8 @@ struct Cli {
 #[tokio::main]
 async fn main() -> Result<()> {
     wikimisc::logging::init();
+    // `server::serve` drains requests on SIGTERM, then sends the final push.
+    wikimisc::telemetry::install_web(env!("CARGO_PKG_VERSION"), None);
     let cli = Cli::parse();
     let config = Config::load(&cli.config)?;
     let state = Arc::new(AppState::new(config)?);
@@ -66,8 +68,13 @@ async fn main() -> Result<()> {
             Ok(()) => return Ok(()),
             Err(error) => {
                 failures += 1;
+                wikimisc::telemetry::event(wikimisc::telemetry::Level::Error, "web server stopped");
                 tracing::error!("web server stopped ({failures}): {error:#}");
                 if failures >= MAX_SERVER_FAILURES {
+                    wikimisc::telemetry::shutdown(wikimisc::telemetry::ExitReason::Other(
+                        "web server stopped too often".to_string(),
+                    ))
+                    .await;
                     return Err(error.into());
                 }
                 tokio::time::sleep(Duration::from_secs(1)).await;

@@ -35,6 +35,7 @@ wikimisc = { git = "https://github.com/magnusmanske/wikimisc", features = [
     "replicas",
     "server",
     "ssrf",
+    "telemetry",
     "web",
     "wiki",
     "wiki-api",
