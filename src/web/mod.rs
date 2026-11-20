@@ -51,6 +51,7 @@ pub fn router(state: Arc<AppState>) -> Router {
             .route(&format!("/{tool}"), moved(&page))
             .route(&format!("/{tool}.php"), moved(&page))
             .route(&format!("/{tool}/index.php"), moved(&page))
+            .route(&format!("/{tool}/index.html"), moved(&page))
             // The OAuth wrapper of every old tool is now the shared API.
             .route(
                 &format!("/{tool}/api.php"),
@@ -177,6 +178,13 @@ mod tests {
             assert_eq!(
                 get(&format!("/{tool}")).await.headers["location"],
                 format!("/{tool}/")
+            );
+            let old_index = get(&format!("/{tool}/index.html?image=X")).await;
+            assert_eq!(old_index.status.as_u16(), 308, "{tool}");
+            assert_eq!(
+                old_index.headers["location"],
+                format!("/{tool}/?image=X"),
+                "{tool}"
             );
         }
     }
