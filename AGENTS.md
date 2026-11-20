@@ -52,8 +52,9 @@ A working Rust/axum service that replaces the four PHP transfer tools:
   `assets/js/flickr-file.js` (per-photo row) and
   `assets/flickr2commons.css`.
 
-`mediawiki_upload` (the sibling crate) must be published or switched to a git
-dependency before a remote Toolforge build; it is a path dependency today.
+`mediawiki_upload` (the sibling crate) is a published dependency (0.1.0), so a
+remote buildservice build works; bump its version in `Cargo.toml` after changing
+it locally.
 
 ## Contracts to preserve
 
@@ -167,6 +168,21 @@ file, so a broken dictionary cannot become a per-request error.
   are GPL-3.0-or-later (`COPYING`). Do not relicense the extracted dictionaries
   as MIT/Apache just because `mediawiki_upload` is permissively licensed.
 
+## Deployment
+
+`magpie` runs from the buildservice `Procfile`; `wikimisc` telemetry reads
+`$DASHBOARD_TOKEN`. The four old subdomains are Toolforge redirect containers
+(`scripts/redirect_tool.sh`, `REDIRECT_HOST=magpie.toolforge.org`,
+`REDIRECT_PATH=/<tool>%s`).
+
+`%s` keeps the request path on purpose: `/api.php`, `/index.php` and
+`g2c.php` must still resolve under `/{tool}/`. A fixed `REDIRECT_PATH` folds
+them into the tool page, which silently breaks the API on the old domains.
+
+Use `toolforge envvars create` to change a value; it also updates. Never call
+`toolforge envvars delete` from a script that arrives on stdin — it asks for
+confirmation and swallows the rest of the script.
+
 ## Likely next work
 
 1. Add front-end tests for the ported Flickr helpers (`commons.js` filename
@@ -177,19 +193,16 @@ file, so a broken dictionary cannot become a per-request error.
 3. Add usage logging if the dashboard needs it.
 4. Wire `mediawiki_upload`'s `toolforge-replicas` feature for size/SHA-1
    pre-checks, if a "check before upload" control is added.
-5. Publish `mediawiki_upload` or switch the dependency to git before the remote
-   build.
 
 ## Environment / tooling pitfalls
 
 * The development checkout lives at `~/rust/magpie`; the sibling crate at
-  `~/rust/mediawiki_upload`. `mediawiki_upload` is the only workspace root the
-  editor tools accept, so during development it contains untracked symlinks
-  (`.magpie_link`, `.ref_*`) for reading and writing. Remove them before
-  committing `mediawiki_upload`.
+  `~/rust/mediawiki_upload`. Only `magpie` is a workspace root for the editor
+  tools, so during development the sibling crate holds an untracked
+  `.magpie_link` symlink. Remove it before committing `mediawiki_upload`.
 * Build from the repository root or pass an **absolute**
   `--manifest-path /Users/…/magpie/Cargo.toml`; a relative manifest path
-  through the symlink resolves the path dependency wrongly.
+  through the symlink confuses cargo.
 * `include_dir!`/`include_str!` need a rebuild after adding files under
   `assets/` or `data/`; `build.rs` prints `rerun-if-changed` for both, and
   `touch src/main.rs` is a reliable nudge.

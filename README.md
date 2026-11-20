@@ -15,8 +15,8 @@ The ported tools and their dictionaries are GPL-3.0-or-later; see `COPYING`.
 
 The old `.php` addresses still resolve: a tool page by a permanent redirect
 (308, query string and POST body included), a tool's `api.php` directly to the
-shared upload API. The four old subdomains can forward here with Toolforge's
-redirect container; see [Deployment](#deployment).
+shared upload API. The four old subdomains are Toolforge redirect containers
+that keep the path and the query; see [Deployment](#deployment).
 
 ## Why this is feasible, and why it helps
 
@@ -218,34 +218,32 @@ Toolforge buildservice, as `magnustools_rs`:
    tool's data directory. Generate `cookie_key` with `openssl rand -hex 64`.
 3. `toolforge build start` (or `./build.sh`), then start the web service with
    the `Procfile`.
-4. To move each old subdomain, use Toolforge's redirect container (308, so
-   query strings and POST bodies survive):
+4. The four old subdomains are Toolforge
+   [redirect containers](https://wikitech.wikimedia.org/wiki/Tool:Containers#Redirect_container).
+   One command per account does the whole switch:
 
    ```bash
-   # as the old tool's account, e.g. flickr2commons
-   toolforge envvars create REDIRECT_HOST magpie.toolforge.org
-   toolforge envvars create REDIRECT_PATH /flickr2commons/
-   cat > "$HOME/service.template" <<'EOF'
-   type: buildservice
-   buildservice-image: tool-containers/redirect:latest
-   health-check-path: /healthz
-   mount: none
-   cpu: 125m
-   mem: 128Mi
-   EOF
-   toolforge webservice stop
-   toolforge webservice start
+   cat scripts/redirect_tool.sh \
+     | ssh magnus@login.toolforge.org "become flickr2commons bash -s"
    ```
 
-   Repeat for `url2commons`, `geograph2commons`, and `commonshelper`. Because
-   paths are not preserved (`REDIRECT_PATH` without `%s`), use the tool's own
-   directory as above. The absolute callback URLs of the old consumers are no
-   longer needed; delete them when the old tools are retired.
+   The script sets `REDIRECT_HOST=magpie.toolforge.org` and
+   `REDIRECT_PATH=/<tool>%s`, writes `~/service.template` for the
+   `tool-containers/redirect:latest` buildservice image, and restarts the
+   service. Repeat for `url2commons`, `geograph2commons`, and `commonshelper`.
 
-**Dependency caveat:** `mediawiki_upload` is a path dependency while both
-crates are developed together. A remote buildservice build cannot fetch it.
-Publish it (or switch `magpie` to a git dependency) before the first remote
-build.
+   The `%s` matters: keeping the path means `.../api.php` still reaches
+   `/{tool}/api.php`, Geograph's `.../g2c.php` still reaches the page proxy,
+   and `.../index.php` still redirects to `/{tool}/`; a fixed path would fold
+   all of them into the tool page. The container answers 308, so query
+   strings, methods and POST bodies survive. A write that arrives through an
+   old domain is a cross-site request for magpie, though, so old front-ends
+   should call `magpie.toolforge.org` directly. The old accounts'
+   `public_html/` is left in place, just no longer served.
+
+**Dependency caveat:** `mediawiki_upload` is a published crate, so a remote
+buildservice build works; bump the version in `Cargo.toml` whenever the sibling
+crate changes.
 
 ## Status and limitations
 
@@ -306,11 +304,12 @@ snapshots from `tools-static.wmflabs.org`; nothing is bundled in the repository.
 * Write actions require a same-origin request. Browser clients send the usual
   `Sec-Fetch-Site`/`Origin`/`Referer` headers; a non-browser client using the
   upload API directly must supply one of them.
-* The old subdomains need Toolforge redirect containers; see
-  [Deployment](#deployment). A tool page redirects with 308 (method and query
-  preserved).
-* `mediawiki_upload` is a path dependency today. A remote buildservice build
-  cannot fetch it; publish it or use a git dependency before deploying.
+* The four old subdomains are Toolforge redirect containers; see
+  [Deployment](#deployment). They keep the path, so the old `api.php`,
+  `index.php` and `g2c.php` addresses work; magpie itself redirects its old
+  `.php` index paths with 308 (method and query preserved).
+* `mediawiki_upload` comes from crates.io; a change in the sibling crate needs
+  a version bump here before it can be deployed.
 
 **License.** The four source tools are GPL-3.0, so this port and the extracted
 dictionaries are GPL-3.0-or-later (`COPYING`). `mediawiki_upload` remains
