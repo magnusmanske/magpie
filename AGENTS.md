@@ -34,8 +34,9 @@ A working Rust/axum service that replaces the four PHP transfer tools:
 - `src/web/` — router, PHP-style `$_REQUEST` merging, JSONP, embedded assets.
 - `src/api/` — one OAuth login and the legacy upload API. Actions:
   `authorize`, `logout`, `checkauth`, `get_rights`, `upload`,
-  `upload_from_url`, `setpagetext`, `sdc`, `get_flickr_key`,
-  `check_existing_commons_filenames`, `check_flickr_files_in_commons`.
+  `upload_from_url`, `setpagetext`, `sdc`, `get_flickr_key`, `flickr_api`,
+  `flickr_thumb`, `check_existing_commons_filenames`,
+  `check_flickr_files_in_commons`.
   The write guard, warning policy, and response shape mirror
   `magnustools/public_html/oauth_uploader.php`.
 - `src/api/flickr.rs` — replica SQL for `page`, `logging`, `externallinks`;
@@ -133,6 +134,11 @@ file, so a broken dictionary cannot become a per-request error.
 * Information templates and category suggestions come from FLinfo in the
   browser, with a local Information-template fallback. The per-file name check
   uses the Commons API directly; the bulk filename check uses `/api.php`.
+* Flickr reads go through `action=flickr_api`, because Toolforge's CSP does
+  not allow `api.flickr.com`. The proxy allows only the read methods the
+  interface uses and supplies the key server-side; `get_flickr_key` remains
+  for old clients. Thumbnails use `action=flickr_thumb`, which only fetches
+  HTTPS images from `*.staticflickr.com`. Do not call Flickr from the browser.
 * The login cookie is `Secure` and built by `wikimisc::oauth1::Session`. Local
   login tests therefore need HTTPS (a tunnel is enough); plain HTTP will
   appear logged out no matter how successful the OAuth handshake was.

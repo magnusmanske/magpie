@@ -3,7 +3,6 @@
 window.Magpie = window.Magpie || {};
 
 Magpie.flickr = (function () {
-	const FLICKR_API = 'https://api.flickr.com/services/rest/';
 	const FLINFO = 'https://fist.toolforge.org/file_candidates/flinfo_proxy.php';
 	const FLICKR_EXTRAS = 'description,license,date_taken,geo,tags,url_o,url_l,url_m,url_q,url_s,path_alias,original_format';
 
@@ -48,6 +47,20 @@ Magpie.flickr = (function () {
 		return text(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 	}
 
+	/* Flickr thumbnails are blocked by the CSP's default-src; proxy them. */
+	function thumbnailUrl(raw) {
+		if (!raw) return '';
+		try {
+			const url = new URL(raw, window.location.href);
+			if (url.protocol === 'https:' && url.hostname.endsWith('.staticflickr.com')) {
+				return '/api.php?action=flickr_thumb&url=' + encodeURIComponent(url.href);
+			}
+		} catch (error) {
+			/* leave the URL as given */
+		}
+		return raw;
+	}
+
 	function decodeBase58(code) {
 		let number = 0n;
 		for (const character of code) {
@@ -58,16 +71,13 @@ Magpie.flickr = (function () {
 		return number.toString();
 	}
 
-	async function api(apiKey, method, params) {
-		const query = new URLSearchParams(Object.assign({
-			method: method,
-			api_key: apiKey,
-			format: 'json',
-			nojsoncallback: '1'
-		}, params || {}));
-		const response = await fetch(FLICKR_API + '?' + query.toString());
-		if (!response.ok) throw new Error('The Flickr API failed (' + response.status + ')');
-		const answer = await response.json();
+	/* Flickr is not in the Toolforge CSP, so reads go through magpie's own API.
+	   The key stays on the server. */
+	async function api(_apiKey, method, params) {
+		const answer = await Magpie.api.post({
+			action: 'flickr_api',
+			params: JSON.stringify(Object.assign({ method: method }, params || {}))
+		});
 		if (answer.stat !== 'ok') throw new Error(answer.message || 'The Flickr API returned an error');
 		return answer;
 	}
@@ -87,6 +97,7 @@ Magpie.flickr = (function () {
 		decodeBase58,
 		text,
 		plain,
+		thumbnailUrl,
 
 		isFree(id) {
 			return FREE_LICENSE_IDS.has(String(id));
@@ -150,28 +161,15 @@ Magpie.flickr = (function () {
 		},
 
 		/* Resolve a path alias via flickr.urls.lookupUser. */
-		async lookupUserByAlias(apiKey, name, timeoutMs) {
-			if (!apiKey || /@/.test(name)) return null;
-			const controller = new AbortController();
-			const timer = setTimeout(() => controller.abort(), timeoutMs || 10000);
+		async lookupUserByAlias(apiKey, name) {
+			if (/@/.test(name)) return null;
 			try {
-				const url = new URL(FLICKR_API);
-				const params = {
-					method: 'flickr.urls.lookupUser',
-					api_key: apiKey,
-					url: 'https://www.flickr.com/photos/' + encodeURIComponent(name) + '/',
-					format: 'json',
-					nojsoncallback: 1
-				};
-				Object.keys(params).forEach((key) => url.searchParams.set(key, params[key]));
-				const response = await fetch(url, { signal: controller.signal });
-				if (!response.ok) return null;
-				const data = await response.json();
-				return data.stat === 'ok' && data.user && data.user.id ? data.user.id : null;
+				const data = await api(apiKey, 'flickr.urls.lookupUser', {
+					url: 'https://www.flickr.com/photos/' + encodeURIComponent(name) + '/'
+				});
+				return data.user && data.user.id ? data.user.id : null;
 			} catch (error) {
 				return null;
-			} finally {
-				clearTimeout(timer);
 			}
 		},
 

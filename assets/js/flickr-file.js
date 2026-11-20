@@ -21,7 +21,7 @@ Magpie.Components.flickrFile = {
 	},
 	computed: {
 		thumbnail_url() {
-			return this.file.url_s || this.file.url_q;
+			return Magpie.flickr.thumbnailUrl(this.file.url_s || this.file.url_q);
 		},
 		flickr_description() {
 			return Magpie.flickr.text(this.file.description && this.file.description._content).trim();

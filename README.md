@@ -88,14 +88,14 @@ Request parameters (`GET` or form `POST`):
 
 | Name | Meaning |
 |---|---|
-| `action` | `checkauth`, `get_rights`, `authorize`, `logout`, `upload`, `upload_from_url`, `setpagetext`, `sdc`, `get_flickr_key`, `check_existing_commons_filenames`, `check_flickr_files_in_commons` |
+| `action` | `checkauth`, `get_rights`, `authorize`, `logout`, `upload`, `upload_from_url`, `setpagetext`, `sdc`, `get_flickr_key`, `flickr_api`, `flickr_thumb`, `check_existing_commons_filenames`, `check_flickr_files_in_commons` |
 | `botmode` | any non-empty value asks for a JSON/JSONP answer |
 | `callback` | JSONP callback name (validated; dotted paths allowed) |
 | `site` | wiki domain, default `commons.wikimedia.org` |
 | `url`, `newfile`, `desc`, `comment` | upload source and page text |
 | `ignorewarnings`, `blockwarnings` | warning policy, as in the old uploader |
 | `page`, `text` | `setpagetext` |
-| `params` | JSON object for `sdc` |
+| `params` | JSON object for `sdc`, or `{method, …}` for `flickr_api` |
 | `data`, `filenames` | JSON inputs for the Flickr checks |
 
 The response keeps the old shape:
@@ -127,6 +127,11 @@ Uploads are chunked above `chunk_size` (default 5 MiB); the wiki's
   needs the replica; without it the API reports that the database is
   unavailable.
 * `get_flickr_key` reads `flickr_key_file`, then `$FLICKR_ACCESS_KEY`.
+  `flickr_api` proxies the same configured key to a small allowlist of
+  read-only Flickr methods, because `api.flickr.com` is not in Toolforge's
+  `connect-src`.
+* `flickr_thumb` proxies HTTPS images from `*.staticflickr.com`, because the
+  same CSP's `default-src` also blocks Flickr's thumbnail hosts.
 
 ### Geograph
 
@@ -257,9 +262,9 @@ aliases.
   `group`, `tags`, `maxpics`) are honoured. The old path-based routes
   (`/photo/…`, `/user/…`, …), tool translation, and the `logger.php` pings are
   not ported.
-* **Flickr API CORS** is assumed to work (the old tool called it from the
-  browser). If it does not, proxy the few `flickr.photos.*` calls through
-  `/api.php`.
+* **Flickr API and thumbnail access** go through `action=flickr_api` and
+  `action=flickr_thumb`. This keeps `api.flickr.com` and the static image hosts
+  out of the browser's CSP scope and the API key server-side.
 * **FLinfo** is called directly from the browser for Information templates and
   category suggestions. If it is unreachable, a local template is built from
   the Flickr data; category suggestions are simply unavailable.

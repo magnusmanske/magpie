@@ -115,6 +115,12 @@ pub async fn handler(
     if action == "get_flickr_key" {
         return Ok(flickr::key(&state));
     }
+    if action == "flickr_api" {
+        return Ok(flickr::proxy(&state, &request.params, is_same_origin(&headers)).await);
+    }
+    if action == "flickr_thumb" {
+        return Ok(flickr::thumbnail(&state, &request.url, is_same_origin(&headers)).await);
+    }
     if action == "check_existing_commons_filenames" {
         return Ok(flickr::existing_filenames(&state, &request.filenames).await);
     }

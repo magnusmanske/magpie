@@ -7,12 +7,15 @@
 
 use crate::state::AppState;
 use crate::web::json;
-use axum::response::Response;
+use axum::http::{HeaderValue, StatusCode, header};
+use axum::response::{IntoResponse, Response};
 use mediawiki_upload::FileName;
 use regex::Regex;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::LazyLock;
+use std::time::Duration;
+use url::Url;
 use wikimisc::mysql_async::prelude::Queryable;
 use wikimisc::mysql_async::{Params, Value as DbValue};
 use wikimisc::wiki::Wiki;
@@ -34,8 +37,27 @@ const NAME_BATCH: usize = 500;
 static PHOTO_PATH: LazyLock<Option<Regex>> =
     LazyLock::new(|| Regex::new(r"^/photos?/[^/]+/(\d+)(?:/|$)").ok());
 
-/// `action=get_flickr_key`: a JSON string, or a status message.
-pub fn key(state: &AppState) -> Response {
+const FLICKR_API: &str = "https://api.flickr.com/services/rest/";
+/// The read-only Flickr calls magpie needs. Everything else is refused so the
+/// configured API key cannot be used as a general-purpose Flickr proxy.
+const FLICKR_METHODS: &[&str] = &[
+    "flickr.groups.getInfo",
+    "flickr.groups.pools.getPhotos",
+    "flickr.people.findByUsername",
+    "flickr.people.getInfo",
+    "flickr.photos.getInfo",
+    "flickr.photos.getSizes",
+    "flickr.photos.search",
+    "flickr.photosets.getInfo",
+    "flickr.photosets.getPhotos",
+    "flickr.tags.getListPhoto",
+    "flickr.urls.lookupUser",
+];
+const FLICKR_TIMEOUT: Duration = Duration::from_secs(30);
+const THUMBNAIL_TIMEOUT: Duration = Duration::from_secs(15);
+const THUMBNAIL_MAX_BYTES: usize = 10 * 1024 * 1024;
+
+fn configured_key(state: &AppState) -> Option<String> {
     let from_file = state
         .config
         .flickr_key_file
@@ -43,17 +65,174 @@ pub fn key(state: &AppState) -> Response {
         .and_then(|path| std::fs::read_to_string(path).ok())
         .map(|text| text.trim().to_string())
         .filter(|key| !key.is_empty());
-    let key = from_file
+    from_file
         .or_else(|| {
             std::env::var("FLICKR_ACCESS_KEY")
                 .ok()
                 .map(|key| key.trim().to_string())
         })
-        .filter(|key| !key.is_empty());
-    match key {
+        .filter(|key| !key.is_empty())
+}
+
+/// `action=get_flickr_key`: a JSON string, or a status message.
+pub fn key(state: &AppState) -> Response {
+    match configured_key(state) {
         Some(key) => json(json!({"status": "OK", "data": key})),
         None => json(json!({"status": "Flickr API key is not configured"})),
     }
+}
+
+/// `action=flickr_api`: read-only Flickr API proxy. Flickr's API is not in the
+/// Toolforge CSP's `connect-src`, and keeping the key server-side also avoids
+/// sending it to every browser.
+pub async fn proxy(state: &AppState, raw_params: &str, same_origin: bool) -> Response {
+    if !same_origin {
+        return json(flickr_failure("Requests must come from this site"));
+    }
+    let Ok(params) = serde_json::from_str::<Value>(raw_params) else {
+        return json(flickr_failure("Invalid Flickr parameters"));
+    };
+    let Some(method) = params.get("method").and_then(Value::as_str) else {
+        return json(flickr_failure("No Flickr method given"));
+    };
+    let Some(key) = configured_key(state) else {
+        return json(flickr_failure("Flickr API key is not configured"));
+    };
+    let url = match flickr_url(method, &key, &params) {
+        Ok(url) => url,
+        Err(error) => return json(flickr_failure(error)),
+    };
+    let response = match state.http.get(url).timeout(FLICKR_TIMEOUT).send().await {
+        Ok(response) => response,
+        Err(error) => return json(flickr_failure(format!("Flickr API failed: {error}"))),
+    };
+    let status = response.status();
+    if !status.is_success() {
+        return json(flickr_failure(format!("Flickr API failed ({status})")));
+    }
+    match response.json::<Value>().await {
+        Ok(answer) => json(answer),
+        Err(error) => json(flickr_failure(format!("Invalid Flickr answer: {error}"))),
+    }
+}
+
+/// `action=flickr_thumb`: proxy a Flickr thumbnail, which the CSP would also
+/// block. Only HTTPS URLs on Flickr's static image hosts are accepted.
+pub async fn thumbnail(state: &AppState, raw_url: &str, same_origin: bool) -> Response {
+    if !same_origin {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    let Some(url) = flickr_thumbnail_url(raw_url) else {
+        return StatusCode::BAD_REQUEST.into_response();
+    };
+    let response = match state
+        .download
+        .get(url)
+        .timeout(THUMBNAIL_TIMEOUT)
+        .send()
+        .await
+    {
+        Ok(response) => response,
+        Err(error) => {
+            tracing::warn!("thumbnail fetch failed: {error}");
+            return StatusCode::BAD_GATEWAY.into_response();
+        }
+    };
+    if !response.status().is_success() {
+        return StatusCode::BAD_GATEWAY.into_response();
+    }
+    let content_type = response
+        .headers()
+        .get(header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default()
+        .to_string();
+    if !content_type.starts_with("image/") {
+        return StatusCode::BAD_GATEWAY.into_response();
+    }
+    let mut response = response;
+    let mut body = Vec::new();
+    loop {
+        match response.chunk().await {
+            Ok(Some(chunk)) => {
+                if body.len() + chunk.len() > THUMBNAIL_MAX_BYTES {
+                    return StatusCode::PAYLOAD_TOO_LARGE.into_response();
+                }
+                body.extend_from_slice(&chunk);
+            }
+            Ok(None) => break,
+            Err(error) => {
+                tracing::warn!("thumbnail body failed: {error}");
+                return StatusCode::BAD_GATEWAY.into_response();
+            }
+        }
+    }
+    let mut out = (StatusCode::OK, body).into_response();
+    let headers = out.headers_mut();
+    if let Ok(value) = HeaderValue::from_str(&content_type) {
+        headers.insert(header::CONTENT_TYPE, value);
+    }
+    headers.insert(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static("public, max-age=3600"),
+    );
+    out
+}
+
+fn flickr_thumbnail_url(raw: &str) -> Option<Url> {
+    let url = Url::parse(raw).ok()?;
+    if url.scheme() != "https"
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.port_or_known_default() != Some(443)
+    {
+        return None;
+    }
+    let host = url.host_str()?;
+    host.ends_with(".staticflickr.com").then_some(url)
+}
+
+fn flickr_failure(message: impl Into<String>) -> Value {
+    json!({"stat": "fail", "message": message.into()})
+}
+
+fn flickr_url(method: &str, key: &str, params: &Value) -> Result<Url, String> {
+    if !FLICKR_METHODS.contains(&method) {
+        return Err("Unknown Flickr method".to_string());
+    }
+    let object = params
+        .as_object()
+        .ok_or_else(|| "Invalid Flickr parameters".to_string())?;
+    if object.len() > 32 {
+        return Err("Too many Flickr parameters".to_string());
+    }
+    let mut url = Url::parse(FLICKR_API).map_err(|e| e.to_string())?;
+    {
+        let mut query = url.query_pairs_mut();
+        query.append_pair("method", method);
+        query.append_pair("api_key", key);
+        query.append_pair("format", "json");
+        query.append_pair("nojsoncallback", "1");
+        for (name, value) in object {
+            if matches!(
+                name.as_str(),
+                "method" | "api_key" | "format" | "nojsoncallback"
+            ) {
+                continue;
+            }
+            let text = match value {
+                Value::String(text) => text.clone(),
+                Value::Number(number) => number.to_string(),
+                Value::Bool(flag) => flag.to_string(),
+                _ => return Err(format!("Invalid Flickr parameter {name}")),
+            };
+            if text.len() > 2048 {
+                return Err(format!("Flickr parameter {name} is too long"));
+            }
+            query.append_pair(name, &text);
+        }
+    }
+    Ok(url)
 }
 
 /// `action=check_existing_commons_filenames`: `0` unused, `1` exists,
@@ -344,6 +523,58 @@ fn escape_like(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn flickr_proxy_allows_only_known_methods_and_scalars() {
+        let query = |url: Url| {
+            url.query_pairs()
+                .map(|(key, value)| (key.into_owned(), value.into_owned()))
+                .collect::<HashMap<_, _>>()
+        };
+        let params = json!({
+            "method": "flickr.photos.getInfo",
+            "photo_id": "42",
+            "page": 2
+        });
+        let built = query(flickr_url("flickr.photos.getInfo", "KEY", &params).unwrap());
+        assert_eq!(built["method"], "flickr.photos.getInfo");
+        assert_eq!(built["api_key"], "KEY");
+        assert_eq!(built["photo_id"], "42");
+        assert_eq!(built["page"], "2");
+        assert_eq!(built["format"], "json");
+
+        assert!(flickr_url("flickr.test.echo", "KEY", &params).is_err());
+        assert!(flickr_url("flickr.photos.getInfo", "KEY", &json!({"photo_id": {}})).is_err());
+
+        // The caller cannot override the key, format, or method.
+        let built = query(
+            flickr_url(
+                "flickr.photos.getInfo",
+                "KEY",
+                &json!({"api_key": "INJECTED", "format": "xml", "method": "flickr.test.echo"}),
+            )
+            .unwrap(),
+        );
+        assert_eq!(built["api_key"], "KEY");
+        assert_eq!(built["format"], "json");
+        assert_eq!(built["method"], "flickr.photos.getInfo");
+    }
+
+    #[test]
+    fn thumbnails_must_be_https_flickr_images() {
+        assert!(flickr_thumbnail_url("https://live.staticflickr.com/65535/1_2_s.jpg").is_some());
+        assert!(flickr_thumbnail_url("https://farm3.staticflickr.com/1/2.jpg").is_some());
+        for bad in [
+            "http://live.staticflickr.com/1.jpg",
+            "https://live.staticflickr.com.evil.example/1.jpg",
+            "https://evilstaticflickr.com/1.jpg",
+            "https://live.staticflickr.com:8443/1.jpg",
+            "https://user:pass@live.staticflickr.com/1.jpg",
+            "https://127.0.0.1/1.jpg",
+        ] {
+            assert!(flickr_thumbnail_url(bad).is_none(), "{bad}");
+        }
+    }
 
     #[test]
     fn names_are_normalised_like_php() {
