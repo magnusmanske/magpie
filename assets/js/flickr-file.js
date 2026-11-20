@@ -189,10 +189,11 @@ Magpie.Components.flickrFile = {
 		</div>
 
 		<div class="flickr-file__thumb">
-			<a target="_blank" rel="noopener" :href="file.page">
+			<a v-if="thumbnail_url" target="_blank" rel="noopener" :href="file.page">
 				<img :src="thumbnail_url" loading="lazy" alt="" width="150" height="150"
 					@load="detectThumbnailOrientation">
 			</a>
+			<div v-else class="flickr-file__thumb-placeholder" aria-hidden="true"></div>
 			<div v-if="status_label" class="flickr-file__status-pill">{{ status_label }}</div>
 		</div>
 

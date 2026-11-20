@@ -189,6 +189,7 @@
 .flickr-file__select input { width: 18px; height: 18px; }
 .flickr-file__thumb { width: 150px; flex-shrink: 0; position: relative; }
 .flickr-file__thumb img { width: 150px; height: 150px; object-fit: cover; border-radius: .25rem; }
+.flickr-file__thumb-placeholder { width: 150px; height: 150px; border-radius: .25rem; background: var(--magpie-bg-soft); border: 1px solid var(--magpie-border); }
 .flickr-file--portrait .flickr-file__thumb img { height: auto; object-fit: contain; }
 .flickr-file__status-pill {
 	position: absolute;

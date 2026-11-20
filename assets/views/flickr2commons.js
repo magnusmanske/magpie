@@ -700,8 +700,9 @@ Magpie.Views.flickr2commons = (function () {
 				Object.assign(file, blankFileFields());
 				const owner = [file.path_alias, file.owner].find((value) => value && value !== 'undefined') || '';
 				file.page = owner
-					? 'https://www.flickr.com/photos/' + owner + '/' + file.id + '/'
-					: 'https://www.flickr.com/photo.gne?id=' + file.id;
+					? 'https://www.flickr.com/photos/' + encodeURIComponent(owner) + '/'
+						+ encodeURIComponent(file.id) + '/'
+					: 'https://www.flickr.com/photo.gne?id=' + encodeURIComponent(file.id);
 				file.new_title = Magpie.flickr.generateFilename(file, 'Unnamed Flickr file');
 				return file;
 			},

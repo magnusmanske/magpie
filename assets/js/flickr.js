@@ -47,7 +47,9 @@ Magpie.flickr = (function () {
 		return text(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 	}
 
-	/* Flickr thumbnails are blocked by the CSP's default-src; proxy them. */
+	/* Flickr thumbnails are blocked by the CSP's default-src; proxy them.
+	   Never return an empty or non-web URL: an empty <img src> is resolved by
+	   the browser and can turn into a file:// request. */
 	function thumbnailUrl(raw) {
 		if (!raw) return '';
 		try {
@@ -55,10 +57,13 @@ Magpie.flickr = (function () {
 			if (url.protocol === 'https:' && url.hostname.endsWith('.staticflickr.com')) {
 				return '/api.php?action=flickr_thumb&url=' + encodeURIComponent(url.href);
 			}
+			if (url.protocol === 'https:' || url.protocol === 'http:' || url.protocol === 'data:') {
+				return url.href;
+			}
 		} catch (error) {
-			/* leave the URL as given */
+			/* not a usable URL */
 		}
-		return raw;
+		return '';
 	}
 
 	function decodeBase58(code) {
