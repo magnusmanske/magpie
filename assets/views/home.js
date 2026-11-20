@@ -5,7 +5,7 @@ Magpie.Views.home = {
 	<div>
 		<div class="magpie-card">
 			<h2>Move files to Wikimedia Commons</h2>
-			<p class="magpie-hint">Four tools share one login, one uploader, and one description format.</p>
+			<p class="magpie-hint">Collects shiny things (files) from the web and takes them back to the nest (Wikimedia Commons).</p>
 			<div class="row">
 				<div class="col-md-6" v-for="tool in tools" :key="tool.to">
 					<div class="magpie-card">
