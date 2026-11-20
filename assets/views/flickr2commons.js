@@ -520,6 +520,14 @@ Magpie.Views.flickr2commons = (function () {
 				}
 				return { query: new URLSearchParams(window.location.search), route: null };
 			},
+			getRouteParams() {
+				const params = [];
+				if (this.tag !== '') params.push('tag=' + encodeURIComponent(this.tag));
+				if (this.max_pictures !== '') {
+					params.push('max_pictures=' + encodeURIComponent(this.max_pictures));
+				}
+				return params.length ? '?' + params.join('&') : '';
+			},
 			syncRoute(type, value) {
 				const route = '#/' + type + '/' + encodeURIComponent(value) + this.getRouteParams();
 				if (window.location.hash !== route) {
