@@ -162,6 +162,14 @@ Magpie.Views.flickr2commons = (function () {
 					<p class="f2c-field-hint">{{ t('f2c_use_flickr_descriptions_hint') }}</p>
 
 					<div class="magpie-field">
+						<label for="f2c-description-language">{{ t('magpie_description_language') }}</label>
+						<input id="f2c-description-language" type="text" class="form-control magpie-mono"
+							v-model="description_language" maxlength="20" autocomplete="off"
+							pattern="[A-Za-z][A-Za-z0-9-]*">
+						<p class="f2c-field-hint">{{ t('magpie_description_language_hint') }}</p>
+					</div>
+
+					<div class="magpie-field">
 						<label for="f2c-add-description">{{ t('add2every_desc') }}</label>
 						<textarea id="f2c-add-description" rows="2" class="form-control" v-model="add2every_desc"></textarea>
 					</div>
@@ -295,6 +303,8 @@ Magpie.Views.flickr2commons = (function () {
 						</div>
 					</div>
 					<div class="transfer-bar__actions">
+						<button v-if="transfers_failed > 0 && transfers_running === 0" type="button"
+							class="btn btn-outline-primary btn-sm" @click="retryFailed">{{ t('magpie_retry_failed', [transfers_failed]) }}</button>
 						<button v-if="currently_selected > 0 && transfers_running === 0" type="button"
 							class="btn btn-primary btn-sm" @click="transferAll">{{ t('magpie_upload_selected') }}</button>
 						<button v-if="transfers_running > 0" type="button" class="btn btn-danger btn-sm"
@@ -334,6 +344,7 @@ Magpie.Views.flickr2commons = (function () {
 				title_regex_pattern: '',
 				title_regex_replace: '',
 				title_use_regex: false,
+				description_language: '',
 				add2every_desc: '',
 				append_everywhere: '',
 				use_flickr_descriptions: true,
@@ -1124,7 +1135,13 @@ Magpie.Views.flickr2commons = (function () {
 				if ((match = input.match(/\/photos\/[^/]+\/(\d+)/))) return { type: 'photo', value: match[1] };
 				if ((match = input.match(/\/albums\/(\d+)/))) return { type: 'photoset', value: match[1] };
 				if ((match = input.match(/\/groups\/([^/]+)/))) return { type: 'group', value: match[1] };
-				if ((match = input.match(/\/people\/([^/]+)/))) return { type: 'user', value: match[1] };
+				if ((match = input.match(/\/people\/([^/?#]+)/))) return { type: 'user', value: match[1] };
+				// A bare profile URL has no photo/set id; use its path alias.
+				if ((match = input.match(/flickr\.com\/photos\/([^/?#]+)/i))) {
+					let alias = match[1];
+					try { alias = decodeURIComponent(alias); } catch (error) { /* keep the raw value */ }
+					return { type: 'user', value: alias };
+				}
 				if (/^\d+$/.test(input)) {
 					if (input.length >= 14 && input.length <= 20) return { type: 'photoset', value: input };
 					if (input.length < 14) return { type: 'photo', value: input };
@@ -1208,6 +1225,17 @@ Magpie.Views.flickr2commons = (function () {
 				file.is_checked = true;
 				this.transferAll();
 			},
+			retryFailed() {
+				const failed = this.files.filter((file) => file.f2c_status === 'ERROR');
+				if (failed.length === 0) return;
+				for (const file of failed) {
+					file.f2c_status = 'READY';
+					file.error_message = '';
+					file.is_checked = true;
+				}
+				this.stop_transfers = false;
+				this.transferAll();
+			},
 			nextTransferable() {
 				return this.files.find((file) =>
 					file.is_checked
@@ -1252,6 +1280,13 @@ Magpie.Views.flickr2commons = (function () {
 				newDesc = Magpie.commons.sanitizeDescription(newDesc);
 				const extra = this.add2every_desc.trim();
 				if (extra) newDesc = (newDesc + '\n' + extra).trim();
+				const descriptionLanguage = this.description_language.trim();
+				if (newDesc && /^[a-z][a-z0-9-]*$/i.test(descriptionLanguage)) {
+					const wrapper = new RegExp('^\\{\\{' + descriptionLanguage + '\\s*\\|', 'i');
+					if (!wrapper.test(newDesc)) {
+						newDesc = '{{' + descriptionLanguage + '|1=' + newDesc + '}}';
+					}
+				}
 
 				let result;
 				try {

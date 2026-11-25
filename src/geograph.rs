@@ -11,7 +11,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{Value, json};
 use std::sync::Arc;
 use std::time::Duration;
 use wikimisc::wiki::encode_component;
@@ -24,6 +24,8 @@ const SERVERS: &[&str] = &[
     "geo-en.hlipp.de",
 ];
 const TIMEOUT: Duration = Duration::from_secs(20);
+/// The main site has a JSON API; the other hosts do not resolve an API host.
+const API_HOST: &str = "api.geograph.org.uk";
 /// Geograph's Cloudflare wants a recognizable agent.
 const USER_AGENT: &str = "geograph2commons (https://magpie.toolforge.org/)";
 
@@ -78,7 +80,25 @@ async fn handler(
         &format!("https://{server}/reuse.php?id={id}"),
     )
     .await;
-    json(json!({"main": main, "reuse": reuse})).into_response()
+    // `reuse.php` is behind a Cloudflare challenge for many clients, so also
+    // ask the JSON API. The front-end uses it when the reuse page is missing.
+    let api = match api_host(server) {
+        Some(host) => {
+            fetch_json(
+                &state.geograph,
+                &format!("https://{host}/api/photo/{id}?format=json"),
+            )
+            .await
+        }
+        None => None,
+    };
+    json(json!({"main": main, "reuse": reuse, "api": api})).into_response()
+}
+
+/// The JSON API exists for the main Geograph site; the other servers either
+/// have no API host or redirect away from it.
+fn api_host(server: &str) -> Option<&'static str> {
+    (server == "www.geograph.org.uk").then_some(API_HOST)
 }
 
 async fn fetch(client: &reqwest::Client, url: &str) -> Option<String> {
@@ -87,6 +107,10 @@ async fn fetch(client: &reqwest::Client, url: &str) -> Option<String> {
         return None;
     }
     response.text().await.ok()
+}
+
+async fn fetch_json(client: &reqwest::Client, url: &str) -> Option<Value> {
+    serde_json::from_str(&fetch(client, url).await?).ok()
 }
 
 #[cfg(test)]
@@ -112,5 +136,12 @@ mod tests {
     fn server_list_matches_the_php_tool() {
         assert_eq!(SERVERS.len(), 4);
         assert!(SERVERS.contains(&"geo-en.hlipp.de"));
+    }
+
+    #[test]
+    fn only_the_main_site_has_a_json_api() {
+        assert_eq!(api_host("www.geograph.org.uk"), Some("api.geograph.org.uk"));
+        assert_eq!(api_host("www.geograph.ie"), None);
+        assert_eq!(api_host("geo-en.hlipp.de"), None);
     }
 }

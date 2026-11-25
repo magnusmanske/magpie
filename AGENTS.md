@@ -77,6 +77,9 @@ it locally.
   `/{tool}/index.php` permanently redirect there, preserving the query.
 * Geograph's `g2c` alias is served directly, not redirected: the old
   `main.js` calls `g2c.php` and expects JSON.
+* `/url2commons/` also accepts a form POST for `urls`, `desc`, `simulate`,
+  `run`, and `interface_language`. The values reach the SPA through the
+  one-shot, HTML-escaped `window.__MAGPIE_BOOTSTRAP__`; keep the GET/hash path.
 * CommonsHelper's `{{BotMoveToCommons}}` insertion, the
   `{{NowCommons}}`/`{{subst:ncd}}` snippets, and the delete link are in the
   front-end, because they depend on the user's groups. Keep the same strings.
@@ -136,11 +139,21 @@ file, so a broken dictionary cannot become a per-request error.
   `photoset`, `group`, `tags`, `maxpics`) on `/flickr2commons/`, and the
   hash routes (`#/photo/…`, `#/user/…`, `#/photoset/…`, `#/group/…`,
   `#/url/…`) with `tag`/`max_pictures` are parsed too. `logger.php` pings are
-  replaced by `wikimisc` telemetry.
+  replaced by `wikimisc` telemetry. `smartDetect` also accepts a bare
+  `/photos/<alias>/` or `/people/<alias>/` URL as a user.
+* The Flickr transfer bar has a bulk "retry failed" action (`retryFailed`
+  resets `ERROR` rows to `READY`), and the description can be wrapped in
+  `{{<language>|1=…}}`; both run through the same queue in `runOneTransfer`.
+* Geograph's `reuse.php` is behind a Cloudflare challenge (HTTP 403) for normal
+  clients. The proxy also fetches
+  `api.geograph.org.uk/api/photo/<id>?format=json`; the view builds an
+  `{{Information}}`/`{{geograph}}` description from it when the reuse page is
+  missing. Image URLs come from the license link's `about` or the API
+  (`imgserver` + `image`), never from a synthesised `reuse.php` URL.
 * URL2Commons keeps the PHP flow: `urls`/`desc`/`simulate`/`run` can seed the
-  page (query or fragment), Simulate validates extensions, duplicate URLs and
-  filenames, and Commons existence, and the rendered description preview is
-  available before uploading.
+  page (query, fragment, or form POST), Simulate validates extensions,
+  duplicate URLs and filenames, and Commons existence, and the rendered
+  description preview is available before uploading.
 * The interface is translated through Tooltranslate. The `magpie` tool holds
   all strings; the browser fetches the published snapshots, and missing keys
   fall back to English. `scripts/build_i18n.py` documents how the import SQL

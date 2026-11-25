@@ -94,7 +94,7 @@ Magpie.Views.geograph2commons = {
 				const query = new URLSearchParams({ server: this.server, photo_id: id });
 				const response = await fetch('/geograph2commons/g2c.php?' + query.toString());
 				const data = await response.json();
-				if (!data.main || !data.reuse) throw new Error(this.t('magpie_could_not_load_photo', [id, this.server]));
+				if (!data.main && !data.reuse && !data.api) throw new Error(this.t('magpie_could_not_load_photo', [id, this.server]));
 				this.parse(id, data);
 			} catch (error) {
 				this.message = String(error.message || error);
@@ -103,14 +103,16 @@ Magpie.Views.geograph2commons = {
 			}
 		},
 		parse(id, data) {
-			const main = new DOMParser().parseFromString(data.main, 'text/html');
-			const reuse = new DOMParser().parseFromString(data.reuse, 'text/html');
+			const info = data.api || null;
+			const main = new DOMParser().parseFromString(data.main || '', 'text/html');
+			const reuse = new DOMParser().parseFromString(data.reuse || '', 'text/html');
 
 			const textarea = reuse.querySelector('#wikipedia textarea');
-			let description = textarea ? textarea.textContent : '';
-			if (!description.trim()) throw new Error(this.t('magpie_no_description_check_id'));
+			let description = textarea ? textarea.textContent.trim() : '';
+			if (!description && info) description = this.apiDescription(info, id);
+			if (!description) throw new Error(this.t('magpie_no_description_check_id'));
 
-			description = description.trim() + '\n\n';
+			description += '\n\n';
 			String(this.categories || '').split('\n').forEach((category) => {
 				category = category.trim();
 				if (category) description += '[[Category:' + category + ']]\n';
@@ -119,20 +121,25 @@ Magpie.Views.geograph2commons = {
 
 			const titles = Array.from(reuse.querySelectorAll('h2 a'))
 				.map((a) => a.textContent.trim()).filter(Boolean);
-			if (titles.length < 2) throw new Error(this.t('magpie_no_title_check_id'));
-			let name = titles[1].replace(/'/g, '') + ' (geograph ' + id + ').jpg';
+			let title = titles.length >= 2 ? titles[1] : (info && info.title ? String(info.title) : '');
+			if (!title) throw new Error(this.t('magpie_no_title_check_id'));
+			let name = title.replace(/'/g, '') + ' (geograph ' + id + ').jpg';
 			name = name.replace(/ *[\/|]/g, ',').replace(/\s+/g, ' ').replace(/:/g, '-');
 
+			// The reuse page's direct download link, the API's image, or the
+			// photo page's displayed image. Never synthesise a reuse.php URL.
 			const image = main.querySelector('#mainphoto img');
-			let hires = image ? image.getAttribute('src') : '';
-			reuse.querySelectorAll('a[rel="license"]').forEach((link) => {
-				const about = link.getAttribute('about');
-				if (!about) return;
-				const match = about.match(/\/\d+_([0-9a-f]+)\.jpg/);
-				if (match) {
-					hires = 'https://' + this.server + '/reuse.php?id=' + id + '&download=' + match[1] + '&size=largest';
+			const licenceLink = reuse.querySelector('a[rel="license"]') || main.querySelector('a[rel="license"]');
+			const about = licenceLink && licenceLink.getAttribute('about');
+			let hires = about || '';
+			if (!hires && info && info.image) {
+				try {
+					hires = info.imgserver ? new URL(info.image, info.imgserver).href : String(info.image);
+				} catch (error) {
+					hires = String(info.image);
 				}
-			});
+			}
+			if (!hires && image) hires = image.getAttribute('src') || '';
 			if (hires && hires.indexOf('//') === 0) hires = 'https:' + hires;
 			if (hires && hires.charAt(0) === '/' && hires.indexOf('//') !== 0) hires = 'https://' + this.server + hires;
 			if (!hires) throw new Error(this.t('magpie_no_image_url'));
@@ -151,6 +158,32 @@ Magpie.Views.geograph2commons = {
 				message: '',
 				page: ''
 			};
+		},
+		/* Used when Geograph's reuse page is behind a Cloudflare challenge. */
+		apiDescription(info, id) {
+			const clean = (value) => String(value == null ? '' : value).replace(/\r\n?/g, '\n').trim();
+			const parameter = (value) => clean(value).replace(/\|/g, '{{!}}');
+			const title = parameter(info.title);
+			const comment = parameter(info.comment);
+			const author = parameter(info.realname) || 'unknown';
+			const photoUrl = 'https://' + this.server + '/photo/' + id;
+			const profile = info.profile_link
+				? 'https://www.geograph.org.uk' + String(info.profile_link)
+				: photoUrl;
+			const description = [title, comment].filter(Boolean).join('<br/>');
+			let wikitext = '== {{int:filedesc}} ==\n{{Information\n';
+			wikitext += '|Description={{en|1=' + description + '}}\n';
+			wikitext += '|Source=From [' + photoUrl + ' geograph.org.uk]\n';
+			wikitext += '|Date=' + clean(info.taken) + '\n';
+			wikitext += '|Author=[' + profile + ' ' + author + ']\n';
+			wikitext += '|Permission=\n|Other fields=\n}}\n';
+			const latitude = clean(info.wgs84_lat);
+			const longitude = clean(info.wgs84_long);
+			if (latitude && longitude) {
+				wikitext += '{{Location dec|' + latitude + '|' + longitude + '|source:geograph}}\n';
+			}
+			wikitext += '\n== {{int:license-header}} ==\n{{geograph|' + id + '|' + author + '}}\n';
+			return wikitext;
 		},
 		async upload() {
 			if (!this.row) return;

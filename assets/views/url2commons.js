@@ -108,9 +108,31 @@ Magpie.Views.url2commons = {
 	},
 	async mounted() {
 		await Promise.all([Magpie.refreshAuth(), this.loadAllowedFileTypes()]);
+		// A form POST hands its values over once; do not replay them when the
+		// view is mounted again during client-side navigation.
+		const bootstrap = window.__MAGPIE_BOOTSTRAP__ || null;
+		if (bootstrap) delete window.__MAGPIE_BOOTSTRAP__;
 		const params = this.getUrlVars();
 		if (params.oauth_error) {
 			this.message = this.t('magpie_login_failed');
+		}
+		if (bootstrap) {
+			if (bootstrap.interface_language) {
+				await Magpie.i18n.setLanguage(bootstrap.interface_language);
+			}
+			if (bootstrap.urls !== undefined) this.urls = bootstrap.urls;
+			if (bootstrap.desc !== undefined) this.description = bootstrap.desc;
+			if (bootstrap.run) {
+				if (!this.auth.ok) {
+					this.message = this.t('magpie_login_required');
+					await this.simulate(true);
+				} else {
+					await this.simulate(false);
+				}
+			} else if (bootstrap.simulate) {
+				await this.simulate(true);
+			}
+			return;
 		}
 		if (params.urls !== undefined) this.urls = params.urls;
 		if (params.desc !== undefined) this.description = params.desc;

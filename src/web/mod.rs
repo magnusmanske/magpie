@@ -46,8 +46,13 @@ pub fn router(state: Arc<AppState>) -> Router {
     let router = TOOLS.iter().fold(router, |router, tool| {
         // The tool page itself is the SPA; the old addresses lead there.
         let page = format!("/{tool}/");
+        let page_route = if *tool == "url2commons" {
+            get(apps::index).post(apps::url2commons_form)
+        } else {
+            get(apps::index)
+        };
         router
-            .route(&page, get(apps::index))
+            .route(&page, page_route)
             .route(&format!("/{tool}"), moved(&page))
             .route(&format!("/{tool}.php"), moved(&page))
             .route(&format!("/{tool}/index.php"), moved(&page))
@@ -100,7 +105,7 @@ pub(crate) mod test_support {
     }
 
     /// The full router, without OAuth or replicas configured.
-    pub async fn request(method: &str, uri: &str) -> TestResponse {
+    async fn send(request: Request<Body>) -> TestResponse {
         let dir = tempfile::tempdir().unwrap();
         let config: crate::config::Config = serde_json::from_value(serde_json::json!({
             "oauth": dir.path().join("none.ini"),
@@ -108,11 +113,6 @@ pub(crate) mod test_support {
         }))
         .unwrap();
         let state = AppState::new(config).unwrap();
-        let request = Request::builder()
-            .method(method)
-            .uri(uri)
-            .body(Body::empty())
-            .unwrap();
         let response = router(Arc::new(state)).oneshot(request).await.unwrap();
         let status = response.status();
         let headers = response.headers().clone();
@@ -126,14 +126,37 @@ pub(crate) mod test_support {
         }
     }
 
+    pub async fn request(method: &str, uri: &str) -> TestResponse {
+        send(
+            Request::builder()
+                .method(method)
+                .uri(uri)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+    }
+
     pub async fn get(uri: &str) -> TestResponse {
         request("GET", uri).await
+    }
+
+    pub async fn post_form(uri: &str, body: &'static str) -> TestResponse {
+        send(
+            Request::builder()
+                .method("POST")
+                .uri(uri)
+                .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
+                .body(Body::from(body))
+                .unwrap(),
+        )
+        .await
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::test_support::get;
+    use super::test_support::{get, post_form};
     use super::*;
 
     #[tokio::test]
@@ -144,6 +167,19 @@ mod tests {
         assert_eq!(index.status.as_u16(), 200);
         assert!(index.body.contains("id=\"app\""));
         assert_eq!(index.headers["x-content-type-options"], "nosniff");
+    }
+
+    #[tokio::test]
+    async fn url2commons_accepts_posted_parameters() {
+        let response = post_form(
+            "/url2commons/",
+            "urls=https%3A%2F%2Fexample.org%2Fa.jpg&desc=Hello%7Cworld&simulate=1",
+        )
+        .await;
+        assert_eq!(response.status.as_u16(), 200);
+        assert!(response.body.contains("window.__MAGPIE_BOOTSTRAP__"));
+        assert!(response.body.contains("https://example.org/a.jpg"));
+        assert!(response.body.contains("\"simulate\":true"));
     }
 
     #[tokio::test]
