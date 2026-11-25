@@ -34,7 +34,8 @@ Magpie.Views.flickr2commons = (function () {
 			auto_categories: false,
 			is_checked: true,
 			filename_status: 'checking',
-			error_message: ''
+			error_message: '',
+			error_link: ''
 		};
 	}
 
@@ -115,7 +116,16 @@ Magpie.Views.flickr2commons = (function () {
 						<div class="f2c-message__content"><span>{{ text }}</span></div>
 					</div>
 				</div>
+				<div v-if="flinfo_warning" class="f2c-status-message" role="alert">
+					<div class="f2c-message f2c-message--warning">
+						<div class="f2c-message__content">
+							<span>{{ flinfo_warning }}</span>
+							<a v-if="flinfo_warning_link" :href="flinfo_warning_link" target="_blank" rel="noopener">{{ t('magpie_learn_more') }}</a>
+						</div>
+					</div>
+				</div>
 
+				<aside v-if="loaded_context"
 				<aside v-if="loaded_context" class="f2c-source-info" :aria-label="t('magpie_loaded_source_aria')">
 					<div class="f2c-source-info__content">
 						<strong class="f2c-source-info__type">{{ loaded_context_type }}</strong>
@@ -358,6 +368,9 @@ Magpie.Views.flickr2commons = (function () {
 				pd_rationale: '',
 				non_free_filtered: 0,
 				no_url_filtered: 0,
+				video_filtered: 0,
+				flinfo_warning: '',
+				flinfo_warning_link: '',
 				load_generation: 0
 			};
 		},
@@ -420,6 +433,7 @@ Magpie.Views.flickr2commons = (function () {
 			skipped_messages() {
 				return Magpie.commons.skippedFileMessages({
 					nonFree: this.non_free_filtered,
+					video: this.video_filtered,
 					noUrl: this.no_url_filtered,
 					loaded: this.files.length
 				});
@@ -759,6 +773,10 @@ Magpie.Views.flickr2commons = (function () {
 					this.non_free_filtered++;
 					return;
 				}
+				if (Magpie.flickr.isVideo(file)) {
+					this.video_filtered++;
+					return;
+				}
 				this.files.push(file);
 			},
 			rewritePhotoProperties(photo) {
@@ -773,6 +791,7 @@ Magpie.Views.flickr2commons = (function () {
 					license: photo.license,
 					description: photo.description,
 					tags: tags.join(' '),
+					media: photo.media || '',
 					url_o: last,
 					url_best: last,
 					url_q: sizes[1] ? sizes[1].source : last,
@@ -978,7 +997,24 @@ Magpie.Views.flickr2commons = (function () {
 					})());
 				}
 				await Promise.all(jobs);
+				await this.checkFlinfoPreflight();
 				this.checkFlickrFilesOnCommons();
+			},
+			/* flinfo rejects some Flickr users; warn before the user does the
+			   per-file work. A group can have many owners, so check only
+			   user/photoset/photo sources. */
+			async checkFlinfoPreflight() {
+				const type = this.loaded_context && this.loaded_context.type;
+				if (!type || type === 'group' || this.files.length === 0) return;
+				try {
+					const result = await Magpie.flickr.informationTemplate(this.files[0].id, '', true);
+					if (result && result.status === 4) {
+						this.flinfo_warning = this.t('magpie_flinfo_bad_user');
+						this.flinfo_warning_link = result.link || '';
+					}
+				} catch (error) {
+					/* A preflight failure must not block the listing. */
+				}
 			},
 			async getFlickrFiles(params) {
 				const generation = this.load_generation;
@@ -996,6 +1032,7 @@ Magpie.Views.flickr2commons = (function () {
 					if (generation !== this.load_generation) return;
 					this.files = [];
 					this.non_free_filtered += photos.skipped_non_free || 0;
+					this.video_filtered += photos.skipped_video || 0;
 					this.no_url_filtered += photos.skipped_no_url || 0;
 					for (const photo of photos) this.addFileToList(this.completeFileProperties(photo));
 					this.finishFileLoad();
@@ -1190,6 +1227,9 @@ Magpie.Views.flickr2commons = (function () {
 				this.pd_rationale = '';
 				this.non_free_filtered = 0;
 				this.no_url_filtered = 0;
+				this.video_filtered = 0;
+				this.flinfo_warning = '';
+				this.flinfo_warning_link = '';
 				this.hide_files_on_commons = true;
 				this.populating_categories = false;
 				this.category_population_message = '';
@@ -1231,6 +1271,7 @@ Magpie.Views.flickr2commons = (function () {
 				for (const file of failed) {
 					file.f2c_status = 'READY';
 					file.error_message = '';
+					file.error_link = '';
 					file.is_checked = true;
 				}
 				this.stop_transfers = false;
@@ -1258,6 +1299,7 @@ Magpie.Views.flickr2commons = (function () {
 				}
 				file.f2c_status = 'TRANSFER';
 				file.error_message = '';
+				file.error_link = '';
 				this.transfers_running++;
 				setTimeout(() => this.transferAll(), 0);
 				setTimeout(() => this.transferAll(), 0);
@@ -1300,6 +1342,7 @@ Magpie.Views.flickr2commons = (function () {
 				if (result.error) {
 					file.f2c_status = 'ERROR';
 					file.error_message = result.error;
+					file.error_link = result.link || '';
 					return;
 				}
 

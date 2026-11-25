@@ -4,7 +4,7 @@ window.Magpie = window.Magpie || {};
 
 Magpie.flickr = (function () {
 	const FLINFO = 'https://fist.toolforge.org/file_candidates/flinfo_proxy.php';
-	const FLICKR_EXTRAS = 'description,license,date_taken,geo,tags,url_o,url_l,url_m,url_q,url_s,path_alias,original_format';
+	const FLICKR_EXTRAS = 'description,license,date_taken,geo,tags,media,url_o,url_l,url_m,url_q,url_s,path_alias,original_format';
 
 	/* Flickr licence IDs accepted on Commons: */
 	const FREE_LICENSE_IDS = new Set(['4', '5', '7', '8', '9', '10', '11', '12']);
@@ -32,6 +32,10 @@ Magpie.flickr = (function () {
 
 	/* Flickr's generic public-domain markers; Commons needs a specific reason. */
 	const GENERIC_PD_LICENSE_IDS = new Set(['7', '10']);
+
+	/* Video containers; a video's still image must not be uploaded as a photo. */
+	const VIDEO_FORMATS = new Set(['mp4', 'mov', 'avi', 'wmv', 'm4v', 'webm', 'mpg', 'mpeg', '3gp', 'mkv']);
+	const QFI_URL = 'https://commons.wikimedia.org/wiki/Commons:Questionable_Flickr_images';
 
 	const FLICKR_BASE58 = '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
 
@@ -90,9 +94,15 @@ Magpie.flickr = (function () {
 	async function fetchJSON(url, params) {
 		const target = new URL(url);
 		Object.keys(params || {}).forEach((key) => target.searchParams.set(key, params[key]));
-		const response = await fetch(target);
-		if (!response.ok) throw new Error(Magpie.t('magpie_http_error', [response.status]));
-		return response.json();
+		const controller = new AbortController();
+		const timer = setTimeout(() => controller.abort(), 10000);
+		try {
+			const response = await fetch(target, { signal: controller.signal });
+			if (!response.ok) throw new Error(Magpie.t('magpie_http_error', [response.status]));
+			return await response.json();
+		} finally {
+			clearTimeout(timer);
+		}
 	}
 
 	const flickr = {
@@ -106,6 +116,12 @@ Magpie.flickr = (function () {
 
 		isFree(id) {
 			return FREE_LICENSE_IDS.has(String(id));
+		},
+
+		isVideo(photo) {
+			const media = String((photo && photo.media) || '').toLowerCase();
+			const format = String((photo && photo.originalformat) || '').toLowerCase();
+			return media === 'video' || VIDEO_FORMATS.has(format);
 		},
 
 		async info(apiKey, id) {
@@ -201,6 +217,7 @@ Magpie.flickr = (function () {
 			const results = [];
 			const resultKey = params.result_key;
 			let skippedNonFree = 0;
+			let skippedVideo = 0;
 			let skippedNoUrl = 0;
 
 			const fetchPage = async (page) => {
@@ -227,6 +244,10 @@ Magpie.flickr = (function () {
 					if (!photo.ownername && ownerName) photo.ownername = ownerName;
 					if (!flickr.isFree(photo.license)) {
 						skippedNonFree++;
+						continue;
+					}
+					if (flickr.isVideo(photo)) {
+						skippedVideo++;
 						continue;
 					}
 					photo.url_best = photo.url_o || photo.url_l || photo.url_m;
@@ -257,6 +278,7 @@ Magpie.flickr = (function () {
 			}
 
 			results.skipped_non_free = skippedNonFree;
+			results.skipped_video = skippedVideo;
 			results.skipped_no_url = skippedNoUrl;
 			return results;
 		},
@@ -307,7 +329,11 @@ Magpie.flickr = (function () {
 					5: Magpie.t('magpie_flinfo_invalid_id'),
 					6: Magpie.t('magpie_flinfo_missing_id')
 				};
-				return { error: errors[status] || Magpie.t('magpie_flinfo_issue', [status]) };
+				return {
+					error: errors[status] || Magpie.t('magpie_flinfo_issue', [status]),
+					status: status,
+					link: status === 4 ? QFI_URL : ''
+				};
 			}
 
 			const info = data.wiki.info || {};

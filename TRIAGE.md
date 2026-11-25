@@ -11,9 +11,11 @@ because flickr2commons #119 ("Allow bulk retry of failed uploads", 2026-11-12)
 is open but has no labels, so label-based counts miss it.
 
 **Update after the triage:** the five obsolete issues (#15, #16, #1, #10, #35)
-are closed on Codeberg, and the clear bugs are fixed in this repository
-(flickr #66, #119, #25; geograph2commons #13, #14; url2commons #13). The
-tables below show the post-fix status; **47 issues remain open**.
+and the 21 verified-fixed issues are closed on Codeberg. The fixes cover the
+clear bugs (flickr #66, #119, #25; geograph2commons #13, #14; url2commons #13)
+and the next batch (flickr #62 video screening, #45 QFI link, #46 flinfo
+preflight). **26 issues remain open.** #97 still needs full video upload
+support; #94 needs change-tag support in `mediawiki_upload`.
 
 Status values:
 
@@ -32,12 +34,12 @@ Status values:
 | commonshelper (15) | 6 | 0 | 3 | 4 | 2 |
 | geograph2commons (13) | 3 | 6 | 1 | 1 | 2 |
 | url2commons (1) | 1 | 0 | 0 | 0 | 0 |
-| flickr2commons (23) | 8 | 3 | 4 | 7 | 1 |
-| **Total (52)** | **18** | **9** | **8** | **12** | **5** |
+| flickr2commons (23) | 11 | 3 | 5 | 3 | 1 |
+| **Total (52)** | **21** | **9** | **9** | **8** | **5** |
 
-Roughly a third of the backlog is already resolved by the rewrite, a third is
-a regression test away from being closable, and a third is genuine work. The
-highest-value open items are listed at the end.
+More than half of the backlog is resolved or implemented. The rest is a
+regression test away from being closable or genuine new work; the highest-value
+open items are listed at the end.
 
 ---
 
@@ -61,8 +63,7 @@ highest-value open items are listed at the end.
 | [#4](https://codeberg.org/magnusmanske/commonshelper/issues/4) | minor | Add categories during transfer | **Open** | Only source categories are carried or removed (`removeCategories`); there is no "add categories" input. |
 | [#3](https://codeberg.org/magnusmanske/commonshelper/issues/3) | major | Translate non-license templates (e.g. `Format:Monument istoric` → `Template:CodLMI`) | **Partial** | `Catalog::commons_template` maps any source template, but `data/transwiki.json` only holds license mappings. Add the `ro` entry to the extracted data. |
 
-**Already closed:** #15, #16 (PHP-only).
-**Fixed, closable:** #18, #20, #6, #13, #14, #17.
+**Already closed:** #15, #16 (PHP-only), #18, #20, #6, #13, #14, #17.
 **Verify then close:** #19 (except batch), #9 after capturing fixtures.
 
 ---
@@ -93,8 +94,8 @@ API, never from a synthesised `reuse.php` URL. The hlipp servers remain.
 | [#2](https://codeberg.org/magnusmanske/geograph2commons/issues/2) | major | Works inconsistently | **Likely fixed** | Retest the two ids; the reuse-page dependency that caused the intermittent failures is gone. |
 | [#1](https://codeberg.org/magnusmanske/geograph2commons/issues/1) | major | "Stopped working" (2015) | **Obsolete** (closed) | Old outage report. |
 
-**Already closed:** #1, #10.
-**Fixed, closable:** #12, #13, #14 (and #8/#9 as duplicates after a retest).
+**Already closed:** #1, #10, #12, #13, #14.
+**Verify then close:** #2, #5, #7, #8, #9, #11.
 **Keep:** #4, #3.
 
 ---
@@ -112,21 +113,21 @@ API, never from a synthesised `reuse.php` URL. The hlipp servers remain.
 | # | Priority | Issue | Status | Evidence / next step |
 |---|---|---|---|---|
 | [#119](https://codeberg.org/magnusmanske/flickr2commons/issues/119) | — | Bulk retry of failed uploads | **Fixed** | The transfer bar has a "Retry $1 failed uploads" button; `retryFailed` resets `ERROR` rows to `READY` and reuses the transfer queue (`assets/views/flickr2commons.js`). |
-| [#97](https://codeberg.org/magnusmanske/flickr2commons/issues/97) | major | Support Flickr videos | **Open** | Search/rewrite assume still images (`url_o`/`url_l`/`url_m`, `rewritePhotoProperties`). No video size selection or video-aware description. |
-| [#94](https://codeberg.org/magnusmanske/flickr2commons/issues/94) | major | Tag uploads with `flickr2commons` (change tag) | **Open** | Uploads use the comment `#flickr2commons`; no `tags=` change tag, so the abuse-log noise remains. |
+| [#97](https://codeberg.org/magnusmanske/flickr2commons/issues/97) | major | Support Flickr videos | **Partial** | Videos are now detected and skipped (#62); full video upload still needs size selection and a video-aware description. |
+| [#94](https://codeberg.org/magnusmanske/flickr2commons/issues/94) | major | Tag uploads with `flickr2commons` (change tag) | **Open** | Blocked on `mediawiki_upload`: its `UploadRequest` has no `tags` field, so adding the change tag needs a crate change and release, then one line here. |
 | [#79](https://codeberg.org/magnusmanske/flickr2commons/issues/79) | major | Redundant `<i>` markup in the title | **Fixed** | `generateFilename` runs `plain()` over `file.title` (`assets/js/flickr.js`). |
 | [#69](https://codeberg.org/magnusmanske/flickr2commons/issues/69) | major | Turn "ca. 1920" into `{{other date|ca|1920}}` | **Open** | The date is passed through from flinfo/Flickr (`informationTemplate`, `fallbackTemplate`); no `ca` detection. |
 | [#68](https://codeberg.org/magnusmanske/flickr2commons/issues/68) | major | "Append everywhere" (categories) does not work | **Likely fixed** | `append_everywhere` is appended to the final wikitext after categories (`runOneTransfer`). Retest a multi-file batch. |
 | [#67](https://codeberg.org/magnusmanske/flickr2commons/issues/67) | major | Logged out after OAuth | **Fixed** | The callback stores the access token in `magpie_auth`; `magpie_return_to` sends the user back to the tool (`src/api/mod.rs`, `assets/app.js`). Only plain-HTTP local tests still look logged out, by design. |
 | [#66](https://codeberg.org/magnusmanske/flickr2commons/issues/66) | minor | Error when entering a user profile URL | **Fixed** | `smartDetect` recognises `/photos/<alias>/` and `/people/<alias>/` and decodes the alias before `lookupUserByAlias` (`assets/views/flickr2commons.js`). Checked with profile, photo, album, and `/with/` URLs. |
-| [#62](https://codeberg.org/magnusmanske/flickr2commons/issues/62) | major | Screen out videos (random screenshots) | **Open** | No video detection; same gap as #97. A cheap fix is to skip `originalformat` values that are video containers until video support exists. |
+| [#62](https://codeberg.org/magnusmanske/flickr2commons/issues/62) | major | Screen out videos (random screenshots) | **Fixed** | Videos are detected from `media`/`originalformat`, skipped before a row is created, counted in `skipped_video`, and reported with `f2c_video_skipped` (`assets/js/flickr.js`, `assets/views/flickr2commons.js`). |
 | [#60](https://codeberg.org/magnusmanske/flickr2commons/issues/60) | major | Stuck at "running…" | **Likely fixed** | Listing errors reset `running` and show `input_error`; the proxy has a 30 s timeout (`getFlickrFiles`, `src/api/flickr.rs`). Retest. |
 | [#59](https://codeberg.org/magnusmanske/flickr2commons/issues/59) | major | "0 files currently selected and ready" | **Partial** | Non-free and no-URL skips are now reported (`skippedFileMessages`), and existing-on-Commons rows are shown. Still a legitimate 0 when every file is filtered; needs the original query to confirm. |
 | [#58](https://codeberg.org/magnusmanske/flickr2commons/issues/58) | trivial | Image not uploading | **Partial** | Needs a retest with photo 33396409533; the current flow no longer produces a blank page for an id. |
 | [#54](https://codeberg.org/magnusmanske/flickr2commons/issues/54) | major | Clean Flickr content before upload | **Partial** | `sanitizeDescription` converts `<a>` to wikilinks and escapes `|`, but other HTML/parameters from flinfo are not normalised. Extend the sanitiser or normalise the flinfo fields. |
 | [#52](https://codeberg.org/magnusmanske/flickr2commons/issues/52) | major | Run button not shown | **Likely fixed** | The form and button are gated on auth and API key, with the key error visible; the button is disabled rather than silently absent (`flickr2commons.js` template). |
-| [#46](https://codeberg.org/magnusmanske/flickr2commons/issues/46) | critical | Check flinfo "bad user" before the batch | **Open** | flinfo is queried per file at upload time. Early validation would need a pre-flight on the source owner before listing/transfer. |
-| [#45](https://codeberg.org/magnusmanske/flickr2commons/issues/45) | major | Link to COM:QFI on "bad user" | **Open** | Status 4 maps to a message only (`informationTemplate`); add the link to `COM:QFI`. |
+| [#46](https://codeberg.org/magnusmanske/flickr2commons/issues/46) | critical | Check flinfo "bad user" before the batch | **Fixed** | `checkFlinfoPreflight` runs after a user/photoset/photo listing and shows a warning before per-file work; groups are skipped because they can have many owners. |
+| [#45](https://codeberg.org/magnusmanske/flickr2commons/issues/45) | major | Link to COM:QFI on "bad user" | **Fixed** | A status-4 flinfo result now carries `link` to `COM:Questionable_Flickr_images`; both the preflight warning and the per-file error render it. |
 | [#44](https://codeberg.org/magnusmanske/flickr2commons/issues/44) | major | "No known copyright restrictions" not uploading | **Fixed** | License 7 is in `FREE_LICENSE_IDS`; the PD-rationale prompt is a warning, not a block (`assets/js/flickr.js`, `pd_warning_message`). |
 | [#42](https://codeberg.org/magnusmanske/flickr2commons/issues/42) | minor | Widen the filename field | **Fixed** | The filename input is a full-width `form-control` in the row form (`assets/js/flickr-file.js`), not the old fixed-width field. |
 | [#38](https://codeberg.org/magnusmanske/flickr2commons/issues/38) | major | Redundant markup in the "SOMETHING to work with" message | **Fixed** | `input_error` is rendered as text, and `i18n.t` strips HTML from Tooltranslate values (`assets/js/i18n.js`). |
@@ -135,36 +136,39 @@ API, never from a synthesised `reuse.php` URL. The hlipp servers remain.
 | [#25](https://codeberg.org/magnusmanske/flickr2commons/issues/25) | minor | Optional `{{en|…}}` wrapper around descriptions | **Fixed** | A "Description language" option wraps the description in `{{xx|1=…}}` unless it is already wrapped (`runOneTransfer`); the interface keys are in `scripts/build_i18n.py`. |
 | [#10](https://codeberg.org/magnusmanske/flickr2commons/issues/10) | critical | Account search misses files that album search finds | **Open** | User listings use `flickr.photos.search` with `user_id`; album listings use `flickr.photosets.getPhotos`. Reproduce with `https://www.flickr.com/photos/dfid/` and decide whether to use `flickr.people.getPublicPhotos` or merge photoset results. |
 
-**Already closed:** #35.
-**Fixed, closable:** #38, #42, #44, #79, #67, #66, #119, #25.
+**Already closed:** #35 and all Fixed rows above (#119, #79, #67, #66, #44, #42, #38, #25, #62, #45, #46).
 **Verify then close:** #68, #52, #60, #59, #58.
+**Keep open:** #97 (partial), #94, #69, #10, #37 (partial), #54 (partial).
 
 ---
 
 ## Highest-value next work
 
-1. **Flickr #97/#62 (videos).** Decide whether to support video files or, as a
-   first step, skip video `originalformat` values so random stills stop arriving
-   in "Images needing human review".
-2. **Flickr #94 (change tag).** Add `tags=flickr2commons` to the upload when the
-   OAuth grant allows it; this removes the AbuseFilter noise.
-3. **Flickr #46/#45 (flinfo preflight).** Check the source owner with flinfo
-   before listing/transfer and link status 4 to `COM:QFI`.
-4. **CommonsHelper #4 and #5 (categories, batch).** An add-categories field and
+1. **Flickr #97 (full video support).** Screening is done. Uploading videos
+   needs `flickr.photos.getSizes` video sizes, a video-aware filename and
+   description, and a check that the source URL is the video file rather than
+   its still.
+2. **Flickr #94 (change tag).** Add a `tags` field to `mediawiki_upload`'s
+   `UploadRequest`, release the crate, then pass `tags=flickr2commons` here.
+3. **CommonsHelper #4 and #5 (categories, batch).** An add-categories field and
    a small transfer queue; reuse the Flickr queue and `upload_from_url`.
-5. **Flickr #10 (account listing).** Reproduce the `dfid` account case and
+4. **Flickr #10 (account listing).** Reproduce the `dfid` account case and
    compare `flickr.photos.search` with `flickr.people.getPublicPhotos` or a
    merge of photoset results.
+5. **Flickr #69 (date "ca").** Turn `ca. 1920` into `{{other date|ca|1920}}`
+   when building the Information template.
 6. **Geograph #4 and #3 (hlipp servers, headings).** Add `geo.hlipp.de` only if
    its markup matches; rewrite headings only if the reuse fallback becomes the
    normal path.
+7. **Retests.** #68, #52, #60, #59, #58, and the geograph Likely-fixed set.
 
 ## Deliberately not in scope
 
 * Flickr #37's Spanish wording lives in Tooltranslate, not in this repository;
   change it there.
-* Flickr #97/#62 video support and CommonsHelper #5 batch upload are features,
-  not regressions; treat them as roadmap items rather than triage gaps.
+* Flickr #97 full video upload and CommonsHelper #5 batch upload are features,
+  not regressions; treat them as roadmap items. #62's screening is done.
+* Flickr #94 needs a new `mediawiki_upload` release, not just a change here.
 * CommonsHelper #22 needs a `wikimisc` single-wiki mapping; the alternative is
   a deliberate "unsupported wiki" error, which at least stops the empty-file
   upload.

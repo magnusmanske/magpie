@@ -174,6 +174,7 @@ Magpie.Components.flickrFile = {
 		retry() {
 			this.file.f2c_status = 'READY';
 			this.file.error_message = '';
+			this.file.error_link = '';
 			this.$emit('retry', this.file);
 		},
 		commonsPage(name) {
@@ -283,6 +284,7 @@ Magpie.Components.flickrFile = {
 					<span class="f2c-upload-error__content">
 						<strong>{{ t('f2c_upload_failed') }}</strong>
 						<span>{{ file.error_message }}</span>
+						<a v-if="file.error_link" :href="file.error_link" target="_blank" rel="noopener">{{ t('magpie_learn_more') }}</a>
 					</span>
 					<button v-if="file.f2c_status === 'ERROR'" type="button" class="btn btn-sm btn-outline-danger"
 						@click.prevent="retry" :title="t('magpie_retry')">{{ t('magpie_retry') }}</button>

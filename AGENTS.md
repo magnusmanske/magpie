@@ -144,6 +144,12 @@ file, so a broken dictionary cannot become a per-request error.
 * The Flickr transfer bar has a bulk "retry failed" action (`retryFailed`
   resets `ERROR` rows to `READY`), and the description can be wrapped in
   `{{<language>|1=…}}`; both run through the same queue in `runOneTransfer`.
+* Videos are detected from `media`/`originalformat` and skipped before a
+  transfer row is created; `skipped_video` feeds `f2c_video_skipped`. Full
+  video upload is not implemented.
+* `checkFlinfoPreflight` runs flinfo for user/photoset/photo sources and shows
+  a warning with the COM:QFI link before per-file work; groups are skipped
+  because they can have many owners.
 * Geograph's `reuse.php` is behind a Cloudflare challenge (HTTP 403) for normal
   clients. The proxy also fetches
   `api.geograph.org.uk/api/photo/<id>?format=json`; the view builds an
@@ -196,15 +202,28 @@ Use `toolforge envvars create` to change a value; it also updates. Never call
 `toolforge envvars delete` from a script that arrives on stdin — it asks for
 confirmation and swallows the rest of the script.
 
+Tooltranslate updates: `scripts/build_i18n.py` emits SQL. Import it with the
+`tooltranslate` tool account (`become tooltranslate`; database
+`s53069__tooltranslate_p`). The web `update_json` mode requires OAuth and CSRF,
+so regenerate the published JSON from a pod with a small CLI script that reuses
+`generateJSON`/`generateToolinfo` from `public_html/api.php`; the bastion has no
+PHP, so use `kubectl exec` into one of the tool's pods.
+
 ## Likely next work
 
-1. Add front-end tests for the ported Flickr helpers (`commons.js` filename
+1. Full Flickr video upload (#97): video sizes, filename, description, and the
+   source URL rather than its still. Add a `tags` field to `mediawiki_upload`
+   for the change tag (#94), then release the crate.
+2. CommonsHelper add-categories and batch transfer (#4/#5).
+3. Reproduce the Flickr account-listing gap (#10) before changing the search
+   method.
+4. Add front-end tests for the ported Flickr helpers (`commons.js` filename
    states, `flickr.js` listing/description) and capture a flinfo response as a
    fixture.
-2. Capture CommonsHelper PHP output for representative files and add golden
+5. Capture CommonsHelper PHP output for representative files and add golden
    tests; fix discrepancies that are real bugs rather than quirks.
-3. Add usage logging if the dashboard needs it.
-4. Wire `mediawiki_upload`'s `toolforge-replicas` feature for size/SHA-1
+6. Add usage logging if the dashboard needs it.
+7. Wire `mediawiki_upload`'s `toolforge-replicas` feature for size/SHA-1
    pre-checks, if a "check before upload" control is added.
 
 ## Environment / tooling pitfalls

@@ -309,7 +309,7 @@ Magpie.commons = (function () {
 			return Magpie.t(key, params);
 		},
 
-		skippedFileMessages({ nonFree = 0, noUrl = 0, loaded = 0 } = {}) {
+		skippedFileMessages({ nonFree = 0, video = 0, noUrl = 0, loaded = 0 } = {}) {
 			const messages = [];
 			if (nonFree > 0) {
 				messages.push(loaded === 0
@@ -319,6 +319,11 @@ Magpie.commons = (function () {
 					: api.msg('f2c_non_free_skipped',
 						'$1 Flickr files were skipped because their licences are not accepted on Wikimedia Commons.',
 						[nonFree]));
+			}
+			if (video > 0) {
+				messages.push(api.msg('f2c_video_skipped',
+					'$1 Flickr files were skipped because they are videos; video upload is not supported yet.',
+					[video]));
 			}
 			if (noUrl > 0) {
 				messages.push(api.msg('f2c_no_usable_size_skipped',
