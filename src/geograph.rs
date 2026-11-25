@@ -21,6 +21,7 @@ const SERVERS: &[&str] = &[
     "www.geograph.org.uk",
     "www.geograph.ie",
     "www.geograph.org.gg",
+    "geo.hlipp.de",
     "geo-en.hlipp.de",
 ];
 const TIMEOUT: Duration = Duration::from_secs(20);
@@ -133,8 +134,9 @@ mod tests {
     }
 
     #[test]
-    fn server_list_matches_the_php_tool() {
-        assert_eq!(SERVERS.len(), 4);
+    fn server_list_contains_the_supported_sites() {
+        assert_eq!(SERVERS.len(), 5);
+        assert!(SERVERS.contains(&"geo.hlipp.de"));
         assert!(SERVERS.contains(&"geo-en.hlipp.de"));
     }
 

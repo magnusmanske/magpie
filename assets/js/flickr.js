@@ -51,6 +51,13 @@ Magpie.flickr = (function () {
 		return text(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 	}
 
+	/* Flickr dates are free text; Commons needs {{other date}} for a circa year. */
+	function wikitextDate(value) {
+		const date = plain(value);
+		const match = date.match(/^(?:ca\.?|c\.?|circa|about)\s*(\d{4})$/i);
+		return match ? '{{other date|ca|' + match[1] + '}}' : date;
+	}
+
 	/* Flickr thumbnails are blocked by the CSP's default-src; proxy them.
 	   Never return an empty or non-web URL: an empty <img src> is resolved by
 	   the browser and can turn into a file:// request. */
@@ -112,6 +119,7 @@ Magpie.flickr = (function () {
 		decodeBase58,
 		text,
 		plain,
+		wikitextDate,
 		thumbnailUrl,
 
 		isFree(id) {
@@ -342,7 +350,7 @@ Magpie.flickr = (function () {
 			wikitext += '{{Information\n';
 			wikitext += '| Description = ' + finalDesc + '\n';
 			wikitext += '| Source      = ' + (info.source || '') + '\n';
-			wikitext += '| Date        = ' + (info.date || '') + '\n';
+			wikitext += '| Date        = ' + wikitextDate(info.date) + '\n';
 			wikitext += '| Author      = ' + (info.author || '') + '\n';
 			wikitext += '| Permission  = ' + (info.permission || '') + '\n';
 			wikitext += '| other_versions=\n';
@@ -377,7 +385,7 @@ Magpie.flickr = (function () {
 			const author = authorName
 				? '[https://www.flickr.com/photos/' + owner + '/ ' + authorName + ']'
 				: '';
-			const date = file.datetaken || file.date_taken || '';
+			const date = wikitextDate(file.datetaken || file.date_taken || '');
 			const licence = LICENSE_TEMPLATES[String(file.license)] || '';
 			let wikitext = '== {{int:filedesc}} ==\n';
 			wikitext += '{{Information\n';

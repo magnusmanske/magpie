@@ -14,8 +14,15 @@ is open but has no labels, so label-based counts miss it.
 and the 21 verified-fixed issues are closed on Codeberg. The fixes cover the
 clear bugs (flickr #66, #119, #25; geograph2commons #13, #14; url2commons #13)
 and the next batch (flickr #62 video screening, #45 QFI link, #46 flinfo
-preflight). **26 issues remain open.** #97 still needs full video upload
+preflight). **26 issues remained open.** #97 still needs full video upload
 support; #94 needs change-tag support in `mediawiki_upload`.
+
+**Second update:** the seven Geograph reports #2, #3, #5, #7, #8, #9, #11 are
+closed after checking the deployed endpoint (it returns `main`, `reuse`, and
+`api` for every reported ID). **19 issues remain open.** The working tree also
+implements flickr #10 (account listings), flickr #69 (circa dates),
+commonshelper #4 (extra categories), and geograph #4 (`geo.hlipp.de`); those
+need the next deploy.
 
 Status values:
 
@@ -31,11 +38,11 @@ Status values:
 
 | Tool | Fixed | Likely fixed | Partial | Open | Obsolete |
 |---|---:|---:|---:|---:|---:|
-| commonshelper (15) | 6 | 0 | 3 | 4 | 2 |
-| geograph2commons (13) | 3 | 6 | 1 | 1 | 2 |
+| commonshelper (15) | 7 | 0 | 3 | 3 | 2 |
+| geograph2commons (13) | 10 | 0 | 1 | 0 | 2 |
 | url2commons (1) | 1 | 0 | 0 | 0 | 0 |
-| flickr2commons (23) | 11 | 3 | 5 | 3 | 1 |
-| **Total (52)** | **21** | **9** | **9** | **8** | **5** |
+| flickr2commons (23) | 12 | 4 | 5 | 1 | 1 |
+| **Total (52)** | **30** | **4** | **9** | **4** | **5** |
 
 More than half of the backlog is resolved or implemented. The rest is a
 regression test away from being closable or genuine new work; the highest-value
@@ -60,10 +67,11 @@ open items are listed at the end.
 | [#9](https://codeberg.org/magnusmanske/commonshelper/issues/9) | minor | Adds unnecessary templates | **Partial** | The builder is a faithful port of the PHP control flow, including its cleanup; there are no whole-page golden tests. Capture the two example inputs/outputs in the issue before changing behaviour. |
 | [#6](https://codeberg.org/magnusmanske/commonshelper/issues/6) | minor | Use the internationalized `{{Transferred from}}` template | **Fixed** | Output contains `{{transferred from|<language>.<project>}}` (MediaWiki is first-letter case-insensitive). |
 | [#5](https://codeberg.org/magnusmanske/commonshelper/issues/5) | minor | Allow multiple images at a time | **Open** | The view translates and uploads one file. Reuse the Flickr queue pattern if this is wanted. |
-| [#4](https://codeberg.org/magnusmanske/commonshelper/issues/4) | minor | Add categories during transfer | **Open** | Only source categories are carried or removed (`removeCategories`); there is no "add categories" input. |
+| [#4](https://codeberg.org/magnusmanske/commonshelper/issues/4) | minor | Add categories during transfer | **Fixed** | The view has an extra-categories field; `addExtraCategories` appends `[[Category:…]]` to the translated text before upload or manual copy (`assets/views/commonshelper.js`). Needs the next deploy. |
 | [#3](https://codeberg.org/magnusmanske/commonshelper/issues/3) | major | Translate non-license templates (e.g. `Format:Monument istoric` → `Template:CodLMI`) | **Partial** | `Catalog::commons_template` maps any source template, but `data/transwiki.json` only holds license mappings. Add the `ro` entry to the extracted data. |
 
 **Already closed:** #15, #16 (PHP-only), #18, #20, #6, #13, #14, #17.
+**Fixed, needs deploy:** #4.
 **Verify then close:** #19 (except batch), #9 after capturing fixtures.
 
 ---
@@ -83,20 +91,19 @@ API, never from a synthesised `reuse.php` URL. The hlipp servers remain.
 | [#14](https://codeberg.org/magnusmanske/geograph2commons/issues/14) | major | Hangs at "Uploading…", hires URL "undefined" | **Fixed** | The backend also fetches the JSON API (`src/geograph.rs`); the view builds a description from it when `reuse.php` is blocked and uses the real image URL (`assets/views/geograph2commons.js`, `parse`/`apiDescription`). No undefined link and no unbounded hang. |
 | [#13](https://codeberg.org/magnusmanske/geograph2commons/issues/13) | major | Calculated hi-res URL returns 404 | **Fixed** | The synthesised `reuse.php?download=…&size=largest` URL is gone. The view uses the license link's `about` URL or the API's `imgserver + image` (`parse`). |
 | [#12](https://codeberg.org/magnusmanske/geograph2commons/issues/12) | minor | Double spaces in the generated filename | **Fixed** | The generated name collapses all whitespace: `.replace(/\s+/g, ' ')` (`assets/views/geograph2commons.js`). |
-| [#11](https://codeberg.org/magnusmanske/geograph2commons/issues/11) | major | Nothing happens when clicking Run | **Likely fixed** | Load and upload are separate, both surfaced in `message`; failures no longer leave the button spinning. Retest with the reported ids. |
-| [#10](https://codeberg.org/magnusmanske/geograph2commons/issues/10) | major | Only "ERROR: Warning" | **Obsolete** | The old opaque error path is gone; the view reports which page or field failed. |
-| [#9](https://codeberg.org/magnusmanske/geograph2commons/issues/9) | major | "Not working for a couple of weeks" (2021) | **Likely fixed** | Same root cause as #14; retest now that the reuse fallback and real image URL are in place. |
-| [#8](https://codeberg.org/magnusmanske/geograph2commons/issues/8) | major | Duplicate of #13/#14 | **Likely fixed** | Duplicate of #13/#14; consolidate on Codeberg. |
-| [#7](https://codeberg.org/magnusmanske/geograph2commons/issues/7) | critical | Run does nothing (2020) | **Likely fixed** | Same flow as #11; retest. |
-| [#5](https://codeberg.org/magnusmanske/geograph2commons/issues/5) | critical | Fails for photo 4663005 | **Likely fixed** | Parsing failures are visible and no longer depend on `reuse.php`; retest the reported id. |
-| [#4](https://codeberg.org/magnusmanske/geograph2commons/issues/4) | major | `geo.hlipp.de` / `geo-en.hlipp.de`, umlauts | **Partial** | `geo-en.hlipp.de` is allowed, `geo.hlipp.de` is not (`SERVERS` in `src/geograph.rs`). Add it only if its markup matches the parser; umlauts should survive `DOMParser`. |
-| [#3](https://codeberg.org/magnusmanske/geograph2commons/issues/3) | minor | Use `{{int:filedesc}}` / `{{int:license-header}}` headings | **Open** | The description is taken verbatim from Geograph's reuse textarea; headings are not rewritten. |
-| [#2](https://codeberg.org/magnusmanske/geograph2commons/issues/2) | major | Works inconsistently | **Likely fixed** | Retest the two ids; the reuse-page dependency that caused the intermittent failures is gone. |
+| [#11](https://codeberg.org/magnusmanske/geograph2commons/issues/11) | major | Nothing happens when clicking Run | **Fixed** (closed) | The deployed endpoint returns the photo/reuse/API data, and failures are surfaced in `message`; no silent spinning. |
+| [#10](https://codeberg.org/magnusmanske/geograph2commons/issues/10) | major | Only "ERROR: Warning" | **Obsolete** (closed) | The old opaque error path is gone; the view reports which page or field failed. |
+| [#9](https://codeberg.org/magnusmanske/geograph2commons/issues/9) | major | "Not working for a couple of weeks" (2021) | **Fixed** (closed) | Verified the deployed endpoint with report-era IDs. |
+| [#8](https://codeberg.org/magnusmanske/geograph2commons/issues/8) | major | Duplicate of #13/#14 | **Fixed** (closed) | Duplicate of #13/#14; the deployed service returns reuse/API data. |
+| [#7](https://codeberg.org/magnusmanske/geograph2commons/issues/7) | critical | Run does nothing (2020) | **Fixed** (closed) | Verified photos 2031049 and 5143180 against the deployed service. |
+| [#5](https://codeberg.org/magnusmanske/geograph2commons/issues/5) | critical | Fails for photo 4663005 | **Fixed** (closed) | Verified photo 4663005 against the deployed service. |
+| [#4](https://codeberg.org/magnusmanske/geograph2commons/issues/4) | major | `geo.hlipp.de` / `geo-en.hlipp.de`, umlauts | **Fixed** | Both hosts serve the same `#mainphoto`/reuse markup; `geo.hlipp.de` is now in `SERVERS` and the UI, and verified locally. Image `about` values are only used when they are image URLs. Needs the next deploy. |
+| [#3](https://codeberg.org/magnusmanske/geograph2commons/issues/3) | minor | Use `{{int:filedesc}}` / `{{int:license-header}}` headings | **Fixed** (closed) | The fallback uses both `int` headings, and Geograph's reuse text does too. |
+| [#2](https://codeberg.org/magnusmanske/geograph2commons/issues/2) | major | Works inconsistently | **Fixed** (closed) | Verified photos 3702834 and 2964379 against the deployed service. |
 | [#1](https://codeberg.org/magnusmanske/geograph2commons/issues/1) | major | "Stopped working" (2015) | **Obsolete** (closed) | Old outage report. |
 
-**Already closed:** #1, #10, #12, #13, #14.
-**Verify then close:** #2, #5, #7, #8, #9, #11.
-**Keep:** #4, #3.
+**Already closed:** #1, #10, #12, #13, #14, #11, #9, #8, #7, #5, #3, #2.
+**Fixed, needs deploy:** #4.
 
 ---
 
@@ -116,7 +123,7 @@ API, never from a synthesised `reuse.php` URL. The hlipp servers remain.
 | [#97](https://codeberg.org/magnusmanske/flickr2commons/issues/97) | major | Support Flickr videos | **Partial** | Videos are now detected and skipped (#62); full video upload still needs size selection and a video-aware description. |
 | [#94](https://codeberg.org/magnusmanske/flickr2commons/issues/94) | major | Tag uploads with `flickr2commons` (change tag) | **Open** | Blocked on `mediawiki_upload`: its `UploadRequest` has no `tags` field, so adding the change tag needs a crate change and release, then one line here. |
 | [#79](https://codeberg.org/magnusmanske/flickr2commons/issues/79) | major | Redundant `<i>` markup in the title | **Fixed** | `generateFilename` runs `plain()` over `file.title` (`assets/js/flickr.js`). |
-| [#69](https://codeberg.org/magnusmanske/flickr2commons/issues/69) | major | Turn "ca. 1920" into `{{other date|ca|1920}}` | **Open** | The date is passed through from flinfo/Flickr (`informationTemplate`, `fallbackTemplate`); no `ca` detection. |
+| [#69](https://codeberg.org/magnusmanske/flickr2commons/issues/69) | major | Turn "ca. 1920" into `{{other date|ca|1920}}` | **Fixed** | `wikitextDate` converts `ca.`, `c.`, `circa`, and `about` plus a four-digit year, and both the flinfo and fallback templates use it (`assets/js/flickr.js`). Verified with front-end checks. Needs the next deploy. |
 | [#68](https://codeberg.org/magnusmanske/flickr2commons/issues/68) | major | "Append everywhere" (categories) does not work | **Likely fixed** | `append_everywhere` is appended to the final wikitext after categories (`runOneTransfer`). Retest a multi-file batch. |
 | [#67](https://codeberg.org/magnusmanske/flickr2commons/issues/67) | major | Logged out after OAuth | **Fixed** | The callback stores the access token in `magpie_auth`; `magpie_return_to` sends the user back to the tool (`src/api/mod.rs`, `assets/app.js`). Only plain-HTTP local tests still look logged out, by design. |
 | [#66](https://codeberg.org/magnusmanske/flickr2commons/issues/66) | minor | Error when entering a user profile URL | **Fixed** | `smartDetect` recognises `/photos/<alias>/` and `/people/<alias>/` and decodes the alias before `lookupUserByAlias` (`assets/views/flickr2commons.js`). Checked with profile, photo, album, and `/with/` URLs. |
@@ -134,11 +141,13 @@ API, never from a synthesised `reuse.php` URL. The hlipp servers remain.
 | [#37](https://codeberg.org/magnusmanske/flickr2commons/issues/37) | minor | NASA Kennedy, transfer comment, Spanish string | **Partial** | CC-BY-ND (license 6) is now filtered as non-free, while the old tool forced `PD-USGov` for NASA. The comment is still `#flickr2commons`, not `[[Flickr2Commons]]`. The Spanish string lives in Tooltranslate, not this repository. Decide the NASA policy first. |
 | [#35](https://codeberg.org/magnusmanske/flickr2commons/issues/35) | major | Russian "welcome" translation not applied | **Obsolete** (closed) | The welcome message is gone; interface strings come from Tooltranslate with English fallback. |
 | [#25](https://codeberg.org/magnusmanske/flickr2commons/issues/25) | minor | Optional `{{en|…}}` wrapper around descriptions | **Fixed** | A "Description language" option wraps the description in `{{xx|1=…}}` unless it is already wrapped (`runOneTransfer`); the interface keys are in `scripts/build_i18n.py`. |
-| [#10](https://codeberg.org/magnusmanske/flickr2commons/issues/10) | critical | Account search misses files that album search finds | **Open** | User listings use `flickr.photos.search` with `user_id`; album listings use `flickr.photosets.getPhotos`. Reproduce with `https://www.flickr.com/photos/dfid/` and decide whether to use `flickr.people.getPublicPhotos` or merge photoset results. |
+| [#10](https://codeberg.org/magnusmanske/flickr2commons/issues/10) | critical | Account search misses files that album search finds | **Likely fixed** | Account listings now use `flickr.people.getPublicPhotos` when no tag filter is set (a tag needs `photos.search`), and the method is in the proxy allowlist. The deployed proxy still rejects it until the next deploy; then retest the `dfid`/`gsfc` accounts. |
 
 **Already closed:** #35 and all Fixed rows above (#119, #79, #67, #66, #44, #42, #38, #25, #62, #45, #46).
+**Fixed, needs deploy:** #69.
+**Likely fixed, needs deploy/retest:** #10.
 **Verify then close:** #68, #52, #60, #59, #58.
-**Keep open:** #97 (partial), #94, #69, #10, #37 (partial), #54 (partial).
+**Keep open:** #97 (partial), #94, #37 (partial), #54 (partial).
 
 ---
 
@@ -150,17 +159,15 @@ API, never from a synthesised `reuse.php` URL. The hlipp servers remain.
    its still.
 2. **Flickr #94 (change tag).** Add a `tags` field to `mediawiki_upload`'s
    `UploadRequest`, release the crate, then pass `tags=flickr2commons` here.
-3. **CommonsHelper #4 and #5 (categories, batch).** An add-categories field and
-   a small transfer queue; reuse the Flickr queue and `upload_from_url`.
-4. **Flickr #10 (account listing).** Reproduce the `dfid` account case and
-   compare `flickr.photos.search` with `flickr.people.getPublicPhotos` or a
-   merge of photoset results.
-5. **Flickr #69 (date "ca").** Turn `ca. 1920` into `{{other date|ca|1920}}`
-   when building the Information template.
-6. **Geograph #4 and #3 (hlipp servers, headings).** Add `geo.hlipp.de` only if
-   its markup matches; rewrite headings only if the reuse fallback becomes the
-   normal path.
-7. **Retests.** #68, #52, #60, #59, #58, and the geograph Likely-fixed set.
+3. **CommonsHelper #5 (batch transfer)** and #19's batch request: reuse the
+   Flickr queue and `upload_from_url`.
+4. **CommonsHelper #10 (replace file usages after a rename).** Needs a
+   `globalusage` lookup and edits, or a link to a replacement tool.
+5. **CommonsHelper #3 (non-license template mapping).** Translate templates in
+   place, preserving parameters; the current code only maps license templates.
+6. **CommonsHelper #22 (`foundation.wikimedia.org`).** Needs a single-wiki
+   mapping in `wikimisc` or a direct fetch path.
+7. **Retests.** #68, #52, #60, #59, #58, and the live account check for #10.
 
 ## Deliberately not in scope
 

@@ -118,6 +118,9 @@ file, so a broken dictionary cannot become a per-request error.
   letter, then the upper-case one, then return the upper-first name. This is
   why `commons_template("en","pd-self")` is `Pd-self`, not `PD-self`; the
   good-template check is case-insensitive and still works.
+* The CommonsHelper view has an extra-categories field; `addExtraCategories`
+  appends `[[Category:…]]` to the translated description before upload or
+  manual copy. It runs on translation, so it does not duplicate on upload.
 * License templates are checked for existence on Commons in batches of 50;
   only existing templates appear in the license section. Missing ones become
   the HTML comment listing them.
@@ -150,12 +153,18 @@ file, so a broken dictionary cannot become a per-request error.
 * `checkFlinfoPreflight` runs flinfo for user/photoset/photo sources and shows
   a warning with the COM:QFI link before per-file work; groups are skipped
   because they can have many owners.
+* Account listings use `flickr.people.getPublicPhotos` unless a tag filter is
+  set (then `flickr.photos.search`); both methods are in the proxy allowlist.
+* `wikitextDate` turns `ca.`/`c.`/`circa`/`about` plus a four-digit year into
+  `{{other date|ca|YYYY}}` in both the flinfo and fallback templates.
 * Geograph's `reuse.php` is behind a Cloudflare challenge (HTTP 403) for normal
   clients. The proxy also fetches
   `api.geograph.org.uk/api/photo/<id>?format=json`; the view builds an
   `{{Information}}`/`{{geograph}}` description from it when the reuse page is
-  missing. Image URLs come from the license link's `about` or the API
-  (`imgserver` + `image`), never from a synthesised `reuse.php` URL.
+  missing. Image URLs come from an `about` value that is actually an image,
+  the API (`imgserver` + `image`), or the displayed `#mainphoto` image, never
+  from a synthesised `reuse.php` URL. `geo.hlipp.de` and `geo-en.hlipp.de`
+  serve the same photo/reuse markup and are both supported.
 * URL2Commons keeps the PHP flow: `urls`/`desc`/`simulate`/`run` can seed the
   page (query, fragment, or form POST), Simulate validates extensions,
   duplicate URLs and filenames, and Commons existence, and the rendered
@@ -214,9 +223,9 @@ PHP, so use `kubectl exec` into one of the tool's pods.
 1. Full Flickr video upload (#97): video sizes, filename, description, and the
    source URL rather than its still. Add a `tags` field to `mediawiki_upload`
    for the change tag (#94), then release the crate.
-2. CommonsHelper add-categories and batch transfer (#4/#5).
-3. Reproduce the Flickr account-listing gap (#10) before changing the search
-   method.
+2. CommonsHelper batch transfer (#5) and #19's batch request.
+3. Verify the deployed `flickr.people.getPublicPhotos` path for #10 and reopen
+   if accounts still miss files.
 4. Add front-end tests for the ported Flickr helpers (`commons.js` filename
    states, `flickr.js` listing/description) and capture a flinfo response as a
    fixture.

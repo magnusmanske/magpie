@@ -1107,11 +1107,11 @@ Magpie.Views.flickr2commons = (function () {
 					return;
 				}
 				this.syncRoute('user', userId);
-				this.getFlickrFiles({
-					method: 'flickr.photos.search',
-					result_key: 'photos',
-					user_id: userId
-				});
+				// `getPublicPhotos` reaches photos that `photos.search` misses; a
+				// tag filter still needs the search method.
+				this.getFlickrFiles(this.tag
+					? { method: 'flickr.photos.search', result_key: 'photos', user_id: userId }
+					: { method: 'flickr.people.getPublicPhotos', result_key: 'photos', user_id: userId });
 			},
 			async doRunPhotoset(photosetId) {
 				const generation = this.load_generation;

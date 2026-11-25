@@ -56,7 +56,7 @@ Magpie.Views.geograph2commons = {
 		return {
 			auth: Magpie.authState,
 			authorizeUrl: Magpie.api.authorizeUrl(),
-			servers: ['www.geograph.org.uk', 'www.geograph.ie', 'www.geograph.org.gg', 'geo-en.hlipp.de'],
+			servers: ['www.geograph.org.uk', 'www.geograph.ie', 'www.geograph.org.gg', 'geo.hlipp.de', 'geo-en.hlipp.de'],
 			server: 'www.geograph.org.uk',
 			photoId: '',
 			categories: '',
@@ -129,8 +129,12 @@ Magpie.Views.geograph2commons = {
 			// The reuse page's direct download link, the API's image, or the
 			// photo page's displayed image. Never synthesise a reuse.php URL.
 			const image = main.querySelector('#mainphoto img');
-			const licenceLink = reuse.querySelector('a[rel="license"]') || main.querySelector('a[rel="license"]');
-			const about = licenceLink && licenceLink.getAttribute('about');
+			const imageUrl = /\.(?:jpe?g|png|gif|webp)(?:\?|$)/i;
+			const licenceLinks = Array.from(reuse.querySelectorAll('a[rel="license"]'))
+				.concat(Array.from(main.querySelectorAll('a[rel="license"]')));
+			const about = licenceLinks
+				.map((link) => link.getAttribute('about'))
+				.find((value) => value && imageUrl.test(value));
 			let hires = about || '';
 			if (!hires && info && info.image) {
 				try {

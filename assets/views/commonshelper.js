@@ -28,6 +28,10 @@ Magpie.Views.commonshelper = {
 					<input v-model="newname" class="form-control" :placeholder="image">
 				</div>
 			</div>
+			<div class="magpie-field">
+				<label for="ch-categories">{{ t('magpie_extra_categories') }}</label>
+				<textarea id="ch-categories" v-model="extraCategories" rows="3" class="form-control"></textarea>
+			</div>
 			<div class="magpie-row">
 				<label class="magpie-check"><input type="checkbox" v-model="removeCategories"> {{ t('magpie_remove_source_categories') }}</label>
 				<label class="magpie-check"><input type="checkbox" v-model="ignorewarnings"> {{ t('magpie_ignore_warnings') }}</label>
@@ -86,6 +90,7 @@ Magpie.Views.commonshelper = {
 			project: 'wikipedia',
 			image: '',
 			newname: '',
+			extraCategories: '',
 			removeCategories: false,
 			ignorewarnings: false,
 			directUpload: true,
@@ -201,7 +206,7 @@ Magpie.Views.commonshelper = {
 				const response = await fetch('/commonshelper/translate?' + query.toString());
 				const data = await response.json();
 				if (data.error && data.error !== 'OK') throw new Error(data.error);
-				this.text = data.text;
+				this.text = this.addExtraCategories(data.text || '');
 				this.isGood = !!data.is_good;
 				this.warnings = data.warnings || [];
 				this.sourceUrl = data.source_url || this.sourcePageUrl;
@@ -216,6 +221,19 @@ Magpie.Views.commonshelper = {
 				this.loading = false;
 			}
 		},
+		addExtraCategories(text) {
+			const categories = String(this.extraCategories || '').split('\n')
+				.map((category) => category.trim()
+					.replace(/^\[\[Category:/i, '')
+					.replace(/^Category:/i, '')
+					.replace(/\]\]$/, '')
+					.trim())
+				.filter(Boolean)
+				.map((category) => '[[Category:' + category + ']]');
+			if (categories.length === 0) return text;
+			return text.trimEnd() + '\n' + categories.join('\n');
+		},
+		/* The PHP tool renames a colliding file
 		/* The PHP tool renames a colliding file to "<name> (1).<ext>",
 		   " (2)" and so on; it never overwrites an existing file. */
 		async resolveCommonsName() {

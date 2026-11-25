@@ -45,6 +45,7 @@ const FLICKR_METHODS: &[&str] = &[
     "flickr.groups.pools.getPhotos",
     "flickr.people.findByUsername",
     "flickr.people.getInfo",
+    "flickr.people.getPublicPhotos",
     "flickr.photos.getInfo",
     "flickr.photos.getSizes",
     "flickr.photos.search",
@@ -543,6 +544,7 @@ mod tests {
         assert_eq!(built["page"], "2");
         assert_eq!(built["format"], "json");
 
+        assert!(flickr_url("flickr.people.getPublicPhotos", "KEY", &params).is_ok());
         assert!(flickr_url("flickr.test.echo", "KEY", &params).is_err());
         assert!(flickr_url("flickr.photos.getInfo", "KEY", &json!({"photo_id": {}})).is_err());
 
