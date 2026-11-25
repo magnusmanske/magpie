@@ -52,9 +52,9 @@ A working Rust/axum service that replaces the four PHP transfer tools:
   `assets/js/flickr-file.js` (per-photo row) and
   `assets/flickr2commons.css`.
 
-`mediawiki_upload` (the sibling crate) is a published dependency (0.1.0), so a
+`mediawiki_upload` (the sibling crate) is a published dependency (0.1.2), so a
 remote buildservice build works; bump its version in `Cargo.toml` after changing
-it locally.
+it locally, then publish it before deploying.
 
 ## Contracts to preserve
 
@@ -73,6 +73,9 @@ it locally.
   registration exactly. Never derive it from request headers.
 * The login cookie is one encrypted cookie, `magpie_auth`, path `/`.
 * Writes require `is_same_origin` (the browser sends `sec-fetch-site`).
+* Uploads accept an optional `tags` field (`|`- or `,`-separated). Flickr sends
+  `flickr2commons`; `mediawiki_upload` adds the tag to both the initial and
+  stashed upload requests.
 * Tool addresses: `/{tool}/` serves the SPA; `/{tool}`, `/{tool}.php`, and
   `/{tool}/index.php` permanently redirect there, preserving the query.
 * Geograph's `g2c` alias is served directly, not redirected: the old
@@ -226,9 +229,9 @@ PHP, so use `kubectl exec` into one of the tool's pods.
 
 ## Likely next work
 
-1. Add a `tags` field to `mediawiki_upload` for the change tag (#94), then
-   release the crate. Full video upload (#97) needs Flickr's undocumented
-   video-file endpoints; keep screening until then.
+1. Deploy the change-tag support (`mediawiki_upload` 0.1.2 is published and
+   locked). Full video upload (#97) needs Flickr's undocumented video-file
+   endpoints; keep screening until then.
 2. CommonsHelper #10 (replace file usages after a rename) and #3 (non-license
    template mapping).
 3. Verify the deployed `flickr.people.getPublicPhotos` path for #10 and reopen
@@ -248,6 +251,11 @@ PHP, so use `kubectl exec` into one of the tool's pods.
   `~/rust/mediawiki_upload`. Only `magpie` is a workspace root for the editor
   tools, so during development the sibling crate holds an untracked
   `.magpie_link` symlink. Remove it before committing `mediawiki_upload`.
+* To test magpie against an unpublished sibling version, use a temporary cargo
+  patch, e.g.
+  `cargo test --config 'patch.crates-io.mediawiki_upload.path="/abs/path"'`,
+  and restore `Cargo.lock` afterwards. The buildservice needs the crates.io
+  release.
 * Build from the repository root or pass an **absolute**
   `--manifest-path /Users/…/magpie/Cargo.toml`; a relative manifest path
   through the symlink confuses cargo.

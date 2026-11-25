@@ -1378,9 +1378,9 @@ checksum = "47e1ffaa40ddd1f3ed91f717a33c8c0ee23fff369e3aa8772b9605cc1d22f4c3"
 
 [[package]]
 name = "mediawiki_upload"
-version = "0.1.0"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3d94a39b592c98a46c6a12260b63cd9ed1bf63d69990be92478dd9288617dc0"
+checksum = "a8e669e973139d048cd6c5e6ab170aff23d55c4f16aab6018d8bcc776f771609"
 dependencies = [
  "base64 0.22.1",
  "hmac",

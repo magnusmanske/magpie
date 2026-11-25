@@ -1363,6 +1363,7 @@ Magpie.Views.flickr2commons = (function () {
 						newfile: filename,
 						desc: wikitext,
 						comment: 'Transferred from Flickr via #flickr2commons',
+						tags: 'flickr2commons',
 						ignorewarnings: true,
 						blockwarnings: '1'
 					});

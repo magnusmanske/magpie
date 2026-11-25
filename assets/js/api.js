@@ -45,6 +45,7 @@ Magpie.api = {
 			newfile: options.newfile,
 			desc: options.desc,
 			comment: options.comment,
+			tags: options.tags || '',
 			ignorewarnings: options.ignorewarnings ? '1' : '',
 			blockwarnings: options.blockwarnings || ''
 		});

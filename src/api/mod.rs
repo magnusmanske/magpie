@@ -71,6 +71,9 @@ pub struct Request {
     /// Flickr bookkeeping: a JSON array of file names.
     #[serde(default)]
     filenames: String,
+    /// Change tags for the upload log entry, `|`- or `,`-separated.
+    #[serde(default)]
+    tags: String,
 }
 
 impl Request {
@@ -88,6 +91,30 @@ impl Request {
         self.ignorewarnings
             .as_deref()
             .is_some_and(|value| !value.is_empty() && value != "0")
+    }
+
+    /// Valid change tags from `tags`, de-duplicated.
+    fn change_tags(&self) -> Vec<String> {
+        let mut tags: Vec<String> = Vec::new();
+        for tag in self.tags.split(['|', ',']) {
+            let tag = tag.trim();
+            if tag.is_empty()
+                || tag.len() > 64
+                || !tag
+                    .chars()
+                    .next()
+                    .is_some_and(|c| c.is_ascii_alphanumeric())
+                || !tag
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+            {
+                continue;
+            }
+            if !tags.iter().any(|existing| existing.as_str() == tag) {
+                tags.push(tag.to_string());
+            }
+        }
+        tags
     }
 }
 
@@ -291,6 +318,16 @@ mod tests {
             ["exists", "duplicate"]
         );
         assert!(blocking_warnings(Some("bad key!")).is_empty());
+    }
+
+    #[test]
+    fn change_tags_are_validated_and_deduplicated() {
+        let request = Request {
+            tags: "flickr2commons|flickr2commons|ok_tag|bad tag|-bad|".into(),
+            ..Default::default()
+        };
+        assert_eq!(request.change_tags(), ["flickr2commons", "ok_tag"]);
+        assert!(Request::default().change_tags().is_empty());
     }
 
     #[test]

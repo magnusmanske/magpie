@@ -93,6 +93,7 @@ Request parameters (`GET` or form `POST`):
 | `callback` | JSONP callback name (validated; dotted paths allowed) |
 | `site` | wiki domain, default `commons.wikimedia.org` |
 | `url`, `newfile`, `desc`, `comment` | upload source and page text |
+| `tags` | optional change tags, pipe- or comma-separated; Flickr sends `flickr2commons` |
 | `ignorewarnings`, `blockwarnings` | warning policy, as in the old uploader |
 | `page`, `text` | `setpagetext` |
 | `params` | JSON object for `sdc`, or `{method, …}` for `flickr_api` |

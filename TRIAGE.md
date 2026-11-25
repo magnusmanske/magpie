@@ -28,6 +28,11 @@ needed the next deploy.
 #10, #69, #68, #60, #52, #58, #59, #54; commonshelper #4, #5, #19; geograph
 #4. **7 issues remain open**, all larger feature/data work or policy decisions.
 
+**Fourth update:** flickr #94 is implemented. Uploads accept an optional
+`tags` field; Flickr sends `flickr2commons`, and `mediawiki_upload` 0.1.2
+(published and locked) carries it on the initial and stashed requests.
+**6 issues remain open.**
+
 Status values:
 
 | Status | Meaning |
@@ -45,8 +50,8 @@ Status values:
 | commonshelper (15) | 9 | 0 | 2 | 2 | 2 |
 | geograph2commons (13) | 11 | 0 | 0 | 0 | 2 |
 | url2commons (1) | 1 | 0 | 0 | 0 | 0 |
-| flickr2commons (23) | 19 | 0 | 2 | 1 | 1 |
-| **Total (52)** | **40** | **0** | **4** | **3** | **5** |
+| flickr2commons (23) | 20 | 0 | 2 | 0 | 1 |
+| **Total (52)** | **41** | **0** | **4** | **2** | **5** |
 
 More than half of the backlog is resolved or implemented. The rest is a
 regression test away from being closable or genuine new work; the highest-value
@@ -59,17 +64,17 @@ open items are listed at the end.
 | # | Priority | Issue | Status | Evidence / next step |
 |---|---|---|---|---|
 | [#22](https://codeberg.org/magnusmanske/commonshelper/issues/22) | major | Error copying files to `foundation.wikimedia.org` ("file submitted was empty") | **Open** | `SourceInfo::fetch` uses `wikimisc::Wiki::new(language, project)`; `foundation` is not in `wikimisc`'s `SPECIAL_WIKIS` (`src/commonshelper/source.rs`). Add a single-wiki mapping for `foundation.wikimedia.org` or reject the wiki with a clear message. |
-| [#20](https://codeberg.org/magnusmanske/commonshelper/issues/20) | major | Special class for the original upload log | **Fixed** | The history table is emitted as `{| class="wikitable filehistory"` (`src/commonshelper/text.rs`, upload-log block). |
+| [#20](https://codeberg.org/magnusmanske/commonshelper/issues/20) | major | Special class for the original upload log | **Fixed** | The history table carries the `filehistory` class (`src/commonshelper/text.rs`, upload-log block). |
 | [#19](https://codeberg.org/magnusmanske/commonshelper/issues/19) | critical | Three requests: fix a broken file, auto-add `Now Commons`, batch transfer | **Fixed** (closed) | Auto-NowCommons is implemented, and the batch section translates/uploads several files. The `Skye_ferry.jpg` example no longer exists on en.wikipedia, so the original output cannot be reproduced. |
 | [#18](https://codeberg.org/magnusmanske/commonshelper/issues/18) | blocker | "You have to authorise" warning missing | **Fixed** | The view renders a login prompt when `auth.checked && !auth.ok`; the API returns `You have not authorised this tool yet` (`src/api/mod.rs`, `NOT_AUTHORIZED`). |
 | [#17](https://codeberg.org/magnusmanske/commonshelper/issues/17) | minor | "Ignore warnings" fails on `exists-normalized` | **Fixed** | The upload passes `ignorewarnings` through to MediaWiki and CommonsHelper sends `blockwarnings=""`, so `exists-normalized` never blocks (`assets/views/commonshelper.js`, `src/api/user.rs`). |
 | [#16](https://codeberg.org/magnusmanske/commonshelper/issues/16) | major | Fatal `getSubResults()` error | **Obsolete** | PHP-only failure in `php/wikiquery.php`; no equivalent code path exists. |
 | [#15](https://codeberg.org/magnusmanske/commonshelper/issues/15) | blocker | "Commonshelper doesn't work" (2018 outage) | **Obsolete** | Rewritten as a separate service. |
 | [#14](https://codeberg.org/magnusmanske/commonshelper/issues/14) | major | `{{Now Commons}}` button opens a blank section in the 2017 wikitext editor | **Fixed** | `applyNowCommons` edits through `action=edit` (`setpagetext`), never the visual editor, and prepends the template with a base timestamp. |
-| [#13](https://codeberg.org/magnusmanske/commonshelper/issues/13) | minor | `{{BotMoveToCommons}}` needs named date parameters | **Fixed** | `botMoveToCommons()` emits `|year=…|month=…|day=…`. |
+| [#13](https://codeberg.org/magnusmanske/commonshelper/issues/13) | minor | `{{BotMoveToCommons}}` needs named date parameters | **Fixed** | `botMoveToCommons()` emits named `year`, `month`, and `day` parameters. |
 | [#10](https://codeberg.org/magnusmanske/commonshelper/issues/10) | major | Option to replace existing file usages after a rename | **Open** | Not implemented. Would need a `globalusage`/backlink lookup plus edits, or a link to a replacement tool. |
 | [#9](https://codeberg.org/magnusmanske/commonshelper/issues/9) | minor | Adds unnecessary templates | **Partial** | The builder is a faithful port of the PHP control flow, including its cleanup; there are no whole-page golden tests. Capture the two example inputs/outputs in the issue before changing behaviour. |
-| [#6](https://codeberg.org/magnusmanske/commonshelper/issues/6) | minor | Use the internationalized `{{Transferred from}}` template | **Fixed** | Output contains `{{transferred from|<language>.<project>}}` (MediaWiki is first-letter case-insensitive). |
+| [#6](https://codeberg.org/magnusmanske/commonshelper/issues/6) | minor | Use the internationalized `{{Transferred from}}` template | **Fixed** | Output uses the `transferred from` template with `<language>.<project>` (MediaWiki is first-letter case-insensitive). |
 | [#5](https://codeberg.org/magnusmanske/commonshelper/issues/5) | minor | Allow multiple images at a time | **Fixed** (closed) | The batch section takes one file per line, translates with concurrency 3, resolves collisions, allows per-row editing, then uploads all ready files (`assets/views/commonshelper.js`). |
 | [#4](https://codeberg.org/magnusmanske/commonshelper/issues/4) | minor | Add categories during transfer | **Fixed** | The view has an extra-categories field; `addExtraCategories` appends `[[Category:…]]` to the translated text before upload or manual copy (`assets/views/commonshelper.js`). Needs the next deploy. |
 | [#3](https://codeberg.org/magnusmanske/commonshelper/issues/3) | major | Translate non-license templates (e.g. `Format:Monument istoric` → `Template:CodLMI`) | **Partial** | `Catalog::commons_template` maps any source template, but `data/transwiki.json` only holds license mappings. Add the `ro` entry to the extracted data. |
@@ -123,9 +128,9 @@ API, never from a synthesised `reuse.php` URL. The hlipp servers remain.
 |---|---|---|---|---|
 | [#119](https://codeberg.org/magnusmanske/flickr2commons/issues/119) | — | Bulk retry of failed uploads | **Fixed** | The transfer bar has a "Retry $1 failed uploads" button; `retryFailed` resets `ERROR` rows to `READY` and reuses the transfer queue (`assets/views/flickr2commons.js`). |
 | [#97](https://codeberg.org/magnusmanske/flickr2commons/issues/97) | major | Support Flickr videos | **Partial** | Videos are detected and skipped (#62). A video upload is not feasible with the public API: `getSizes` returns only player/page URLs (`Video Player`, `appletv`, `700`, `iphone_wifi`), and `originalformat` is the poster frame (PNG/JPEG). It needs undocumented endpoints. |
-| [#94](https://codeberg.org/magnusmanske/flickr2commons/issues/94) | major | Tag uploads with `flickr2commons` (change tag) | **Open** | Blocked on `mediawiki_upload`: its `UploadRequest` has no `tags` field, so adding the change tag needs a crate change and release, then one line here. |
+| [#94](https://codeberg.org/magnusmanske/flickr2commons/issues/94) | major | Tag uploads with `flickr2commons` (change tag) | **Fixed** (closed) | `mediawiki_upload` 0.1.2 adds a `tags` builder and sends `tags` on initial and stashed requests. The magpie API accepts an optional `tags` parameter, and Flickr sends `flickr2commons`. The crate is published and the lock is updated. |
 | [#79](https://codeberg.org/magnusmanske/flickr2commons/issues/79) | major | Redundant `<i>` markup in the title | **Fixed** | `generateFilename` runs `plain()` over `file.title` (`assets/js/flickr.js`). |
-| [#69](https://codeberg.org/magnusmanske/flickr2commons/issues/69) | major | Turn "ca. 1920" into `{{other date|ca|1920}}` | **Fixed** (closed) | `wikitextDate` converts `ca.`, `c.`, `circa`, and `about` plus a four-digit year in both the flinfo and fallback templates (`assets/js/flickr.js`). |
+| [#69](https://codeberg.org/magnusmanske/flickr2commons/issues/69) | major | Turn "ca. 1920" into an `other date` template | **Fixed** (closed) | `wikitextDate` converts `ca.`, `c.`, `circa`, and `about` plus a four-digit year in both the flinfo and fallback templates (`assets/js/flickr.js`). |
 | [#68](https://codeberg.org/magnusmanske/flickr2commons/issues/68) | major | "Append everywhere" (categories) does not work | **Fixed** (closed) | `append_everywhere` is appended to the final wikitext after categories (`runOneTransfer`). Verified in the code path. |
 | [#67](https://codeberg.org/magnusmanske/flickr2commons/issues/67) | major | Logged out after OAuth | **Fixed** | The callback stores the access token in `magpie_auth`; `magpie_return_to` sends the user back to the tool (`src/api/mod.rs`, `assets/app.js`). Only plain-HTTP local tests still look logged out, by design. |
 | [#66](https://codeberg.org/magnusmanske/flickr2commons/issues/66) | minor | Error when entering a user profile URL | **Fixed** | `smartDetect` recognises `/photos/<alias>/` and `/people/<alias>/` and decodes the alias before `lookupUserByAlias` (`assets/views/flickr2commons.js`). Checked with profile, photo, album, and `/with/` URLs. |
@@ -142,18 +147,18 @@ API, never from a synthesised `reuse.php` URL. The hlipp servers remain.
 | [#38](https://codeberg.org/magnusmanske/flickr2commons/issues/38) | major | Redundant markup in the "SOMETHING to work with" message | **Fixed** | `input_error` is rendered as text, and `i18n.t` strips HTML from Tooltranslate values (`assets/js/i18n.js`). |
 | [#37](https://codeberg.org/magnusmanske/flickr2commons/issues/37) | minor | NASA Kennedy, transfer comment, Spanish string | **Partial** | CC-BY-ND (license 6) is now filtered as non-free, while the old tool forced `PD-USGov` for NASA. The comment is still `#flickr2commons`, not `[[Flickr2Commons]]`. The Spanish string lives in Tooltranslate, not this repository. Decide the NASA policy first. |
 | [#35](https://codeberg.org/magnusmanske/flickr2commons/issues/35) | major | Russian "welcome" translation not applied | **Obsolete** (closed) | The welcome message is gone; interface strings come from Tooltranslate with English fallback. |
-| [#25](https://codeberg.org/magnusmanske/flickr2commons/issues/25) | minor | Optional `{{en|…}}` wrapper around descriptions | **Fixed** | A "Description language" option wraps the description in `{{xx|1=…}}` unless it is already wrapped (`runOneTransfer`); the interface keys are in `scripts/build_i18n.py`. |
+| [#25](https://codeberg.org/magnusmanske/flickr2commons/issues/25) | minor | Optional language wrapper around descriptions | **Fixed** | A "Description language" option wraps the description in a language template unless it is already wrapped (`runOneTransfer`); the interface keys are in `scripts/build_i18n.py`. |
 | [#10](https://codeberg.org/magnusmanske/flickr2commons/issues/10) | critical | Account search misses files that album search finds | **Fixed** (closed) | Account listings use `flickr.people.getPublicPhotos` when no tag filter is set (a tag needs `photos.search`), and the method is in the allowlist. The deployed proxy rejects it until the next deploy; reopen if an account still misses public photos. |
 
-**Already closed:** #35 and all Fixed rows above (#119, #79, #67, #66, #44, #42, #38, #25, #62, #45, #46, #69, #68, #60, #59, #58, #54, #52, #10).
-**Keep open:** #97 (partial), #94 (blocked on a crate release), #37 (policy).
+**Already closed:** #35 and all Fixed rows above (#119, #79, #67, #66, #44, #42, #38, #25, #62, #45, #46, #69, #68, #60, #59, #58, #54, #52, #10, #94).
+**Keep open:** #97 (partial), #37 (policy).
 
 ---
 
 ## Highest-value next work
 
-1. **Flickr #94 (change tag).** Add a `tags` field to `mediawiki_upload`'s
-   `UploadRequest`, release the crate, then pass `tags=flickr2commons` here.
+1. **Deploy the change-tag support** (`mediawiki_upload` 0.1.2 is published and
+   locked in magpie, #94).
 2. **Flickr #97 (full video support).** Screening is done. A real upload needs
    Flickr's undocumented video-file endpoints; document the finding and keep
    the screening behavior until then.
@@ -175,7 +180,8 @@ API, never from a synthesised `reuse.php` URL. The hlipp servers remain.
   change it there.
 * Flickr #97 full video upload needs undocumented Flickr video-file endpoints;
   #62's screening is the supported behavior.
-* Flickr #94 needs a new `mediawiki_upload` release, not just a change here.
+* Flickr #94's code is in both crates; `mediawiki_upload` 0.1.2 is published,
+  so only the deployment remains.
 * CommonsHelper #22 needs a `wikimisc` single-wiki mapping; the alternative is
   a deliberate "unsupported wiki" error, which at least stops the empty-file
   upload.

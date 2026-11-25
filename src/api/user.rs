@@ -179,6 +179,7 @@ impl User<'_> {
             .comment(request.comment.trim())
             .ignore_warnings(request.ignore_warnings())
             .blocking_warnings(request.blocking_warnings())
+            .tags(request.change_tags())
             .chunk_size(self.state.config.chunk_size);
         let uploader = Uploader::new(
             &self.api_url,
