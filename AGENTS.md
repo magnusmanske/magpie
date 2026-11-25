@@ -121,6 +121,10 @@ file, so a broken dictionary cannot become a per-request error.
 * The CommonsHelper view has an extra-categories field; `addExtraCategories`
   appends `[[Category:…]]` to the translated description before upload or
   manual copy. It runs on translation, so it does not duplicate on upload.
+* The CommonsHelper batch section translates one file per line with
+  concurrency 3, resolves collisions with `freeCommonsName`, allows per-row
+  editing, then uploads ready rows. It reuses `translateFile` and
+  `upload_from_url`; keep the single-file flow working.
 * License templates are checked for existence on Commons in batches of 50;
   only existing templates appear in the license section. Missing ones become
   the HTML comment listing them.
@@ -149,7 +153,9 @@ file, so a broken dictionary cannot become a per-request error.
   `{{<language>|1=…}}`; both run through the same queue in `runOneTransfer`.
 * Videos are detected from `media`/`originalformat` and skipped before a
   transfer row is created; `skipped_video` feeds `f2c_video_skipped`. Full
-  video upload is not implemented.
+  video upload is not implemented: Flickr's public API exposes only player/page
+  URLs for videos (`getSizes` entries with `media=video` are not files), and
+  `originalformat` is the poster frame. It would need undocumented endpoints.
 * `checkFlinfoPreflight` runs flinfo for user/photoset/photo sources and shows
   a warning with the COM:QFI link before per-file work; groups are skipped
   because they can have many owners.
@@ -220,10 +226,11 @@ PHP, so use `kubectl exec` into one of the tool's pods.
 
 ## Likely next work
 
-1. Full Flickr video upload (#97): video sizes, filename, description, and the
-   source URL rather than its still. Add a `tags` field to `mediawiki_upload`
-   for the change tag (#94), then release the crate.
-2. CommonsHelper batch transfer (#5) and #19's batch request.
+1. Add a `tags` field to `mediawiki_upload` for the change tag (#94), then
+   release the crate. Full video upload (#97) needs Flickr's undocumented
+   video-file endpoints; keep screening until then.
+2. CommonsHelper #10 (replace file usages after a rename) and #3 (non-license
+   template mapping).
 3. Verify the deployed `flickr.people.getPublicPhotos` path for #10 and reopen
    if accounts still miss files.
 4. Add front-end tests for the ported Flickr helpers (`commons.js` filename

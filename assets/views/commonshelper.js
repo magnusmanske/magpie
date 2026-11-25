@@ -49,6 +49,46 @@ Magpie.Views.commonshelper = {
 			</p>
 		</div>
 
+		<div class="magpie-card">
+			<h3>{{ t('magpie_batch_heading') }}</h3>
+			<p class="magpie-hint">{{ t('magpie_batch_hint') }}</p>
+			<div class="magpie-field">
+				<label for="ch-batch-files">{{ t('magpie_batch_files') }}</label>
+				<textarea id="ch-batch-files" v-model="batchImages" rows="5" class="form-control magpie-mono"></textarea>
+			</div>
+			<div class="magpie-actions">
+				<button class="btn btn-primary" :disabled="batchBusy || !batchImages.trim()" @click="translateAll">
+					{{ batchBusy ? t('magpie_loading') : t('magpie_batch_translate') }}</button>
+				<button class="btn btn-success" :disabled="batchBusy || !batchReadyCount" @click="uploadAll">
+					{{ t('magpie_batch_upload') }}</button>
+			</div>
+			<p v-if="batchMessage" class="magpie-status" aria-live="polite">{{ batchMessage }}</p>
+			<table v-if="batchRows.length" class="magpie-table mt-2">
+				<thead><tr>
+					<th>{{ t('magpie_file_name') }}</th>
+					<th>{{ t('magpie_new_name') }}</th>
+					<th>{{ t('magpie_status') }}</th>
+				</tr></thead>
+				<tbody>
+					<tr v-for="row in batchRows" :key="row.image">
+						<td class="magpie-mono">{{ row.image }}
+							<details v-if="row.text">
+								<summary>{{ t('description') }}</summary>
+								<textarea v-model="row.text" rows="10" class="form-control magpie-mono"></textarea>
+							</details>
+						</td>
+						<td><input v-model="row.newname" class="form-control magpie-mono"
+							:disabled="row.status === 'uploading' || row.status === 'done'"></td>
+						<td class="magpie-status">
+							<span :class="batchRowClass(row)">{{ batchRowStatus(row) }}</span>
+							<small v-if="row.warnings.length" class="magpie-error">{{ row.warnings.join('; ') }}</small>
+							<span v-if="row.page"><a :href="row.page" target="_blank" rel="noopener">{{ t('magpie_uploaded') }}</a></span>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+
 		<div class="magpie-card" v-if="text">
 			<h3>{{ t('description') }}</h3>
 			<p class="magpie-hint">
@@ -110,7 +150,11 @@ Magpie.Views.commonshelper = {
 			renamedFrom: '',
 			nowCommonsBusy: false,
 			nowCommonsMessage: '',
-			nowCommonsError: false
+			nowCommonsError: false,
+			batchImages: '',
+			batchRows: [],
+			batchBusy: false,
+			batchMessage: ''
 		};
 	},
 	computed: {
@@ -146,6 +190,10 @@ Magpie.Views.commonshelper = {
 			const reason = encodeURIComponent('NowCommons [[:commons:File:' + this.effectiveName + ']]');
 			return 'https://' + this.site + '/w/index.php?title=' + title +
 				'&action=delete&wpReason=' + reason;
+		},
+		batchReadyCount() {
+			return this.batchRows.filter((row) =>
+				row.status === 'ready' && row.isGood && row.text.trim() !== '').length;
 		}
 	},
 	async mounted() {
@@ -196,16 +244,7 @@ Magpie.Views.commonshelper = {
 			}
 			this.loading = true;
 			try {
-				const query = new URLSearchParams({
-					image: this.bareImage,
-					language: this.language.trim() || 'en',
-					project: this.project.trim() || 'wikipedia',
-					newname: this.newname.trim(),
-					remove_categories: this.removeCategories ? '1' : '0'
-				});
-				const response = await fetch('/commonshelper/translate?' + query.toString());
-				const data = await response.json();
-				if (data.error && data.error !== 'OK') throw new Error(data.error);
+				const data = await this.translateFile(this.bareImage, this.newname.trim());
 				this.text = this.addExtraCategories(data.text || '');
 				this.isGood = !!data.is_good;
 				this.warnings = data.warnings || [];
@@ -221,6 +260,19 @@ Magpie.Views.commonshelper = {
 				this.loading = false;
 			}
 		},
+		async translateFile(image, newname = '') {
+			const query = new URLSearchParams({
+				image,
+				language: this.language.trim() || 'en',
+				project: this.project.trim() || 'wikipedia',
+				newname,
+				remove_categories: this.removeCategories ? '1' : '0'
+			});
+			const response = await fetch('/commonshelper/translate?' + query.toString());
+			const data = await response.json();
+			if (data.error && data.error !== 'OK') throw new Error(data.error);
+			return data;
+		},
 		addExtraCategories(text) {
 			const categories = String(this.extraCategories || '').split('\n')
 				.map((category) => category.trim()
@@ -233,22 +285,23 @@ Magpie.Views.commonshelper = {
 			if (categories.length === 0) return text;
 			return text.trimEnd() + '\n' + categories.join('\n');
 		},
-		/* The PHP tool renames a colliding file
 		/* The PHP tool renames a colliding file to "<name> (1).<ext>",
 		   " (2)" and so on; it never overwrites an existing file. */
 		async resolveCommonsName() {
 			const wanted = this.effectiveName;
 			if (!wanted) return;
+			const free = await this.freeCommonsName(wanted);
+			if (!free.changed) return;
+			this.newname = free.name;
+			this.renamedFrom = wanted;
+			this.nameCollision = true;
+			this.warnings.unshift(this.t('magpie_name_changed', [wanted, free.name]));
+		},
+		async freeCommonsName(wanted) {
 			let candidate = wanted;
 			for (let count = 1; count <= 50; count++) {
 				if (!(await this.commonsExists(candidate))) {
-					if (candidate !== wanted) {
-						this.newname = candidate;
-						this.renamedFrom = wanted;
-						this.nameCollision = true;
-						this.warnings.unshift(this.t('magpie_name_changed', [wanted, candidate]));
-					}
-					return;
+					return { name: candidate, changed: candidate !== wanted };
 				}
 				candidate = this.numberedName(wanted, count);
 			}
@@ -266,6 +319,131 @@ Magpie.Views.commonshelper = {
 			}
 			const status = ((answer.data || {}).files || {})[Magpie.fileName(name)];
 			return status === 1;
+		},
+		batchImageList() {
+			const seen = new Set();
+			return String(this.batchImages || '').split('\n')
+				.map((line) => line.trim().replace(/^(File|Image):/i, '').trim())
+				.filter((image) => {
+					if (!image || seen.has(image)) return false;
+					seen.add(image);
+					return true;
+				});
+		},
+		batchRowStatus(row) {
+			if (row.status === 'translating') return this.t('magpie_loading');
+			if (row.status === 'uploading') return this.t('magpie_uploading');
+			if (row.status === 'done') return this.t('magpie_uploaded');
+			if (row.status === 'error') return row.message;
+			return row.isGood ? this.t('magpie_ready') : this.t('magpie_no_free_license');
+		},
+		batchRowClass(row) {
+			if (row.status === 'done') return 'good';
+			if (row.status === 'error') return 'bad';
+			if (row.status === 'ready' && !row.isGood) return 'bad';
+			return 'uploading';
+		},
+		async translateAll() {
+			const images = this.batchImageList();
+			if (images.length === 0) {
+				this.batchMessage = this.t('magpie_enter_file_name');
+				return;
+			}
+			this.batchBusy = true;
+			this.batchMessage = this.t('magpie_loading');
+			const rows = images.map((image) => ({
+				image,
+				newname: image,
+				text: '',
+				isGood: false,
+				warnings: [],
+				sourceUrl: '',
+				status: 'translating',
+				message: '',
+				page: ''
+			}));
+			this.batchRows = rows;
+			for (let offset = 0; offset < rows.length; offset += 3) {
+				await Promise.all(rows.slice(offset, offset + 3).map(async (row) => {
+					try {
+						const data = await this.translateFile(row.image);
+						row.text = this.addExtraCategories(data.text || '');
+						row.isGood = !!data.is_good;
+						row.warnings = data.warnings || [];
+						row.sourceUrl = data.source_url || '';
+						const wanted = data.newname || row.image;
+						const free = await this.freeCommonsName(wanted);
+						row.newname = free.name;
+						if (free.changed) {
+							row.warnings.unshift(this.t('magpie_name_changed', [wanted, free.name]));
+						}
+						row.status = 'ready';
+						row.message = row.isGood ? '' : this.t('magpie_no_free_license');
+					} catch (error) {
+						row.status = 'error';
+						row.message = String(error.message || error);
+					}
+				}));
+			}
+			this.batchBusy = false;
+			const good = rows.filter((row) => row.status === 'ready' && row.isGood).length;
+			this.batchMessage = this.t('magpie_batch_translated', [rows.length, good]);
+		},
+		async uploadAll() {
+			const rows = this.batchRows.filter((row) =>
+				row.status === 'ready' && row.isGood && row.text.trim() !== '' && row.newname.trim() !== '');
+			if (rows.length === 0) {
+				this.batchMessage = this.t('magpie_batch_nothing');
+				return;
+			}
+			if (!this.auth.ok) {
+				this.batchMessage = this.t('magpie_login_required');
+				return;
+			}
+			this.batchBusy = true;
+			this.batchMessage = '';
+			let done = 0;
+			let failed = 0;
+			let autopatrolled = false;
+			try {
+				const rights = await Magpie.api.getRights();
+				if (rights.error && rights.error !== 'OK') throw new Error(rights.error);
+				const groups = (((rights.result || {}).query || {}).userinfo || {}).groups || [];
+				autopatrolled = groups.indexOf('autopatrolled') !== -1;
+			} catch (error) {
+				this.batchBusy = false;
+				this.batchMessage = String(error.message || error);
+				return;
+			}
+			for (const row of rows) {
+				row.status = 'uploading';
+				row.message = '';
+				try {
+					let description = row.text;
+					if (!autopatrolled) description = this.botMoveToCommons() + '\n\n' + description;
+					const result = await Magpie.api.uploadFromUrl({
+						url: row.sourceUrl,
+						newfile: row.newname.trim(),
+						desc: description,
+						comment: 'Transferred from ' + this.site + ' via #commonshelper',
+						ignorewarnings: this.ignorewarnings,
+						blockwarnings: ''
+					});
+					if (result.error && result.error !== 'OK') throw new Error(Magpie.uploadFailure(result));
+					const uploaded = result.res && result.res.upload && result.res.upload.filename;
+					row.page = Magpie.commonsPage(uploaded || row.newname);
+					row.status = 'done';
+					row.message = this.t('magpie_upload_success');
+					done++;
+				} catch (error) {
+					row.status = 'error';
+					row.message = String(error.message || error);
+					failed++;
+				}
+				await Magpie.sleep(300);
+			}
+			this.batchBusy = false;
+			this.batchMessage = this.t('magpie_batch_uploaded', [done, failed]);
 		},
 		async upload() {
 			this.uploadMessage = '';
